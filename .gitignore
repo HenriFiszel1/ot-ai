@@ -1,0 +1,7 @@
+node_modules
+.next
+.env.local
+.env
+.env.local.save
+Henris Project
+.DS_Store
