@@ -42,8 +42,7 @@ function ContributeContent() {
   const [essayGrade, setEssayGrade] = useState("");
   const [essayNumericGrade, setEssayNumericGrade] = useState("");
   const [teacherEndComment, setTeacherEndComment] = useState("");
-  const [teacherInlineComments, setTeacherInlineComments] = useState<Array<{ excerpt: string; comment: string }>>
-  >([{ excerpt: "", comment: "" }]);
+  const [teacherInlineComments, setTeacherInlineComments] = useState<Array<{ excerpt: string; comment: string }>>([{ excerpt: "", comment: "" }]);
   const [savingEssay, setSavingEssay] = useState(false);
   const [essaySuccess, setEssaySuccess] = useState(false);
 
