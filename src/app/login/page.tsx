@@ -2,9 +2,11 @@
 
 import { useState, Suspense } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { GraduationCap, ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
+import { TextShimmer } from "@/components/ui/text-shimmer";
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -56,26 +58,29 @@ function LoginForm() {
     }
   }
 
+  const ic = "w-full h-11 px-3.5 bg-transparent border rounded-lg text-sm text-[#F2F2FF] placeholder:text-[rgba(255,255,255,0.35)] focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors duration-200 border-[rgba(255,255,255,0.12)]";
+
   return (
     <div className="w-full max-w-sm">
-      <Link href="/" className="flex items-center gap-2.5 mb-8">
-        <div className="w-9 h-9 bg-teal-600 rounded-lg flex items-center justify-center">
-          <GraduationCap className="w-5 h-5 text-white" />
-        </div>
-        <span className="text-xl font-semibold text-white tracking-tight">
-          Optimize Teacher
-        </span>
+      <Link href="/" className="flex items-center gap-3 mb-10">
+        <Image
+          src="/optimize-ai-logo.png"
+          alt="Optimize AI"
+          width={140}
+          height={36}
+          className="h-8 w-auto"
+        />
       </Link>
 
-      <h1 className="text-2xl font-bold text-white tracking-tight">
+      <h1 className="text-2xl font-semibold tracking-[-0.02em]" style={{ color: '#F2F2FF' }}>
         Welcome back
       </h1>
-      <p className="mt-1 text-sm text-gray-400">
+      <p className="mt-1.5 text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
         Sign in to analyze your essays.
       </p>
 
       {error && (
-        <div className="mt-4 p-3 bg-red-950 border border-red-800 rounded-lg text-sm text-red-400">
+        <div className="mt-4 p-3 rounded-lg text-sm" style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>
           {error}
         </div>
       )}
@@ -83,10 +88,11 @@ function LoginForm() {
       <button
         onClick={handleGoogleLogin}
         disabled={googleLoading}
-        className="mt-6 w-full h-10 bg-white hover:bg-gray-100 disabled:opacity-50 text-gray-800 rounded-lg text-sm font-medium flex items-center justify-center gap-3 transition-colors border border-gray-200"
+        className="mt-6 w-full h-11 disabled:opacity-50 rounded-lg text-sm font-medium flex items-center justify-center gap-3 transition-opacity hover:opacity-90"
+        style={{ background: '#F2F2FF', color: '#141414' }}
       >
         {googleLoading ? (
-          <Loader2 className="w-4 h-4 animate-spin text-gray-600" />
+          <TextShimmer duration={1} className="text-sm [--base-color:theme(colors.gray.500)] [--base-gradient-color:theme(colors.gray.800)] dark:[--base-color:theme(colors.gray.500)] dark:[--base-gradient-color:theme(colors.gray.800)]">Connecting to Google...</TextShimmer>
         ) : (
           <>
             <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -101,33 +107,34 @@ function LoginForm() {
       </button>
 
       <div className="mt-5 flex items-center gap-3">
-        <div className="flex-1 h-px bg-gray-800" />
-        <span className="text-xs text-gray-500">or sign in with email</span>
-        <div className="flex-1 h-px bg-gray-800" />
+        <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>or sign in with email</span>
+        <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
       </div>
 
       <form onSubmit={handleLogin} className="mt-5 space-y-4">
         <div>
-          <label className="text-sm font-medium text-gray-300 block mb-1.5">Email</label>
+          <label className="text-sm font-medium block mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Email</label>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-            className="w-full h-10 px-3 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            className={ic}
             placeholder="you@school.edu" />
         </div>
         <div>
-          <label className="text-sm font-medium text-gray-300 block mb-1.5">Password</label>
+          <label className="text-sm font-medium block mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Password</label>
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
-            className="w-full h-10 px-3 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            className={ic}
             placeholder="••••••••" />
         </div>
         <button type="submit" disabled={loading}
-          className="w-full h-10 bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors">
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>Sign in</span> <ArrowRight className="w-4 h-4" /></>}
+          className="w-full h-11 disabled:opacity-50 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+          style={{ background: '#F2F2FF', color: '#141414' }}>
+          {loading ? <TextShimmer duration={1} className="text-sm [--base-color:theme(colors.white/0.5)] [--base-gradient-color:theme(colors.white)] dark:[--base-color:theme(colors.white/0.5)] dark:[--base-gradient-color:theme(colors.white)]">Signing in...</TextShimmer> : <><span>Sign in</span> <ArrowRight className="w-4 h-4" /></>}
         </button>
       </form>
 
-      <p className="mt-6 text-sm text-gray-400 text-center">
+      <p className="mt-6 text-sm text-center" style={{ color: 'rgba(255,255,255,0.45)' }}>
         Don&apos;t have an account?{" "}
-        <Link href="/signup" className="text-teal-400 font-medium hover:underline">Sign up</Link>
+        <Link href="/signup" className="font-medium transition-opacity hover:opacity-80" style={{ color: '#F2F2FF' }}>Sign up</Link>
       </p>
     </div>
   );
@@ -135,8 +142,8 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-6">
-      <Suspense fallback={<div className="w-full max-w-sm animate-pulse"><div className="h-8 bg-gray-800 rounded w-48 mb-8" /><div className="h-6 bg-gray-800 rounded w-32 mb-4" /><div className="space-y-4"><div className="h-10 bg-gray-800 rounded" /><div className="h-10 bg-gray-800 rounded" /><div className="h-10 bg-gray-800 rounded" /></div></div>}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: '#141414' }}>
+      <Suspense fallback={<div className="w-full max-w-sm animate-pulse"><div className="h-8 rounded w-48 mb-8" style={{ background: 'rgba(255,255,255,0.05)' }} /><div className="h-6 rounded w-32 mb-4" style={{ background: 'rgba(255,255,255,0.05)' }} /><div className="space-y-4"><div className="h-11 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }} /><div className="h-11 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }} /><div className="h-11 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }} /></div></div>}>
         <LoginForm />
       </Suspense>
     </div>

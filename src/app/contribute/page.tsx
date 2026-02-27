@@ -2,13 +2,15 @@
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { DbSchool, DbTeacher } from "@/lib/types";
 import {
-  GraduationCap, ArrowLeft, ArrowRight, Plus, Upload, CheckCircle,
-  Loader2, School, UserPlus, FileText, Link2, Search, ChevronRight,
+  ArrowLeft, ArrowRight, Plus, Upload, CheckCircle,
+  Loader2, School, UserPlus, FileText, Search, ChevronRight,
 } from "lucide-react";
+import { TextShimmer } from "@/components/ui/text-shimmer";
 
 function ContributeContent() {
   const searchParams = useSearchParams();
@@ -16,7 +18,6 @@ function ContributeContent() {
 
   const [step, setStep] = useState(1);
 
-  // Schools
   const [schools, setSchools] = useState<DbSchool[]>([]);
   const [schoolSearch, setSchoolSearch] = useState("");
   const [selectedSchool, setSelectedSchool] = useState<DbSchool | null>(null);
@@ -26,7 +27,6 @@ function ContributeContent() {
   const [newSchoolType, setNewSchoolType] = useState("public");
   const [savingSchool, setSavingSchool] = useState(false);
 
-  // Teachers
   const [teachers, setTeachers] = useState<DbTeacher[]>([]);
   const [selectedTeacher, setSelectedTeacher] = useState<DbTeacher | null>(null);
   const [addingNewTeacher, setAddingNewTeacher] = useState(false);
@@ -36,9 +36,7 @@ function ContributeContent() {
   const [newTeacherGradingStyle, setNewTeacherGradingStyle] = useState("");
   const [savingTeacher, setSavingTeacher] = useState(false);
 
-  // Essays
   const [importMode, setImportMode] = useState<"google" | "manual">("google");
-  const [googleDocUrl, setGoogleDocUrl] = useState("");
   const [importing, setImporting] = useState(false);
   const [imported, setImported] = useState(false);
   const [googleConnected, setGoogleConnected] = useState(false);
@@ -54,7 +52,6 @@ function ContributeContent() {
 
   const [error, setError] = useState<string | null>(null);
 
-  // Load schools
   useEffect(() => {
     async function load() {
       const { data } = await supabase.from("schools").select("*").order("name");
@@ -63,7 +60,6 @@ function ContributeContent() {
     load();
   }, []);
 
-  // Load teachers when school selected
   useEffect(() => {
     if (!selectedSchool) return;
     async function load() {
@@ -73,7 +69,6 @@ function ContributeContent() {
     load();
   }, [selectedSchool]);
 
-  // Check Google connection
   useEffect(() => {
     async function checkGoogle() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -88,9 +83,17 @@ function ContributeContent() {
       }
     }
     checkGoogle();
+
+    // Listen for auth state changes to capture fresh provider_token after OAuth redirect
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.provider_token) {
+        setProviderToken(session.provider_token);
+        setGoogleConnected(true);
+      }
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
-  // If redirected back from Google OAuth to essays step
   useEffect(() => {
     const tab = searchParams.get("tab");
     if (tab === "essays" && selectedSchool && selectedTeacher) {
@@ -102,7 +105,6 @@ function ContributeContent() {
     ? schools.filter((s) => s.name.toLowerCase().includes(schoolSearch.toLowerCase()))
     : [];
 
-  // ── Save new school ──
   async function saveSchool() {
     if (!newSchoolName.trim()) return;
     setSavingSchool(true);
@@ -118,9 +120,8 @@ function ContributeContent() {
       location: newSchoolLocation.trim() || null,
       type: newSchoolType,
     }).select().single();
-    if (err) {
-      setError(err.message);
-    } else if (data) {
+    if (err) { setError(err.message); }
+    else if (data) {
       setSchools((prev) => [...prev, data]);
       setSelectedSchool(data);
       setAddingNewSchool(false);
@@ -129,7 +130,6 @@ function ContributeContent() {
     setSavingSchool(false);
   }
 
-  // ── Save new teacher ──
   async function saveTeacher() {
     if (!newTeacherName.trim() || !selectedSchool) return;
     setSavingTeacher(true);
@@ -147,9 +147,8 @@ function ContributeContent() {
       subjects: newTeacherSubjects ? newTeacherSubjects.split(",").map((s) => s.trim()) : [],
       grading_style: newTeacherGradingStyle.trim() || null,
     }).select().single();
-    if (err) {
-      setError(err.message);
-    } else if (data) {
+    if (err) { setError(err.message); }
+    else if (data) {
       setTeachers((prev) => [...prev, data]);
       setSelectedTeacher(data);
       setAddingNewTeacher(false);
@@ -158,19 +157,18 @@ function ContributeContent() {
     setSavingTeacher(false);
   }
 
-  // ── Google import ──
   async function connectGoogle() {
-    await supabase.auth.linkIdentity({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         scopes: "https://www.googleapis.com/auth/documents.readonly https://www.googleapis.com/auth/drive.readonly",
-        redirectTo: `${window.location.origin}/contribute?tab=essays`,
+        redirectTo: `${window.location.origin}/api/auth/callback?redirect=${encodeURIComponent("/contribute?tab=essays")}`,
       },
     });
+    if (error) setError(error.message);
   }
 
-  async function importGoogleDoc() {
-    if (!googleDocUrl.trim()) return;
+  async function importGoogleDoc(docId: string) {
     setImporting(true);
     setError(null);
     try {
@@ -185,7 +183,7 @@ function ContributeContent() {
       const res = await fetch("/api/import-google-doc", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ doc_url: googleDocUrl, provider_token: token }),
+        body: JSON.stringify({ doc_id: docId, provider_token: token }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -203,9 +201,51 @@ function ContributeContent() {
     setImporting(false);
   }
 
-  // ── Save essay ──
+  async function openPicker() {
+    setError(null);
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.provider_token || providerToken;
+    if (!token) {
+      setError("Google token expired. Please reconnect your Google account.");
+      setGoogleConnected(false);
+      return;
+    }
+    try {
+      await new Promise<void>((resolve, reject) => {
+        if ((window as any).gapi) { resolve(); return; }
+        const script = document.createElement("script");
+        script.src = "https://apis.google.com/js/api.js";
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error("Failed to load Google Picker"));
+        document.head.appendChild(script);
+      });
+      await new Promise<void>((resolve) => {
+        (window as any).gapi.load("picker", { callback: resolve });
+      });
+      const google = (window as any).google;
+      const view = new google.picker.DocsView(google.picker.ViewId.DOCUMENTS)
+        .setMimeTypes("application/vnd.google-apps.document");
+      const builder = new google.picker.PickerBuilder()
+        .addView(view)
+        .setOAuthToken(token)
+        .setDeveloperKey(process.env.NEXT_PUBLIC_GOOGLE_API_KEY)
+        .setCallback((data: any) => {
+          if (data.action === google.picker.Action.PICKED) {
+            const doc = data.docs[0];
+            importGoogleDoc(doc.id);
+          }
+        });
+      if (process.env.NEXT_PUBLIC_GOOGLE_APP_ID) {
+        builder.setAppId(process.env.NEXT_PUBLIC_GOOGLE_APP_ID);
+      }
+      builder.build().setVisible(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to open file picker");
+    }
+  }
+
   async function saveTrainingEssay() {
-    if (!essayText.trim() || !essayPrompt.trim() || !selectedTeacher || !selectedSchool) return;
+    if (!essayText.trim() || !selectedTeacher || !selectedSchool) return;
     setSavingEssay(true);
     setError(null);
     try {
@@ -227,7 +267,7 @@ function ContributeContent() {
       setEssaySuccess(true);
       setEssayText(""); setEssayPrompt(""); setEssayGrade(""); setEssayNumericGrade("");
       setTeacherEndComment(""); setInlineComments([{ excerpt: "", comment: "" }]);
-      setImported(false); setGoogleDocUrl("");
+      setImported(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     }
@@ -240,8 +280,8 @@ function ContributeContent() {
   }
   function removeComment(i: number) { setInlineComments((prev) => prev.filter((_, idx) => idx !== i)); }
 
-  const ic = "w-full h-10 px-3 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent";
-  const tc = "w-full p-3 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent";
+  const ic = "w-full h-11 px-3.5 bg-transparent border rounded-lg text-sm text-[#F2F2FF] placeholder:text-[rgba(255,255,255,0.35)] focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors duration-200" + " border-[rgba(255,255,255,0.12)]";
+  const tc = "w-full p-3.5 bg-transparent border rounded-lg text-sm text-[#F2F2FF] placeholder:text-[rgba(255,255,255,0.35)] focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors duration-200 border-[rgba(255,255,255,0.12)]";
 
   const steps = [
     { num: 1, label: "School" },
@@ -250,16 +290,13 @@ function ContributeContent() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-950">
-      <header className="bg-gray-900 border-b border-gray-800">
-        <div className="max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-lg font-semibold text-white tracking-tight">Optimize Teacher</span>
+    <div className="min-h-screen" style={{ background: '#141414' }}>
+      <header style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
+          <Link href="/dashboard" className="flex items-center gap-3">
+            <Image src="/optimize-ai-logo.png" alt="Optimize AI" width={120} height={30} className="h-6 w-auto" />
           </Link>
-          <Link href="/dashboard" className="text-sm text-gray-400 hover:text-gray-300 flex items-center gap-1">
+          <Link href="/dashboard" className="text-sm flex items-center gap-1.5 transition-opacity hover:opacity-80" style={{ color: 'rgba(255,255,255,0.45)' }}>
             <ArrowLeft className="w-3.5 h-3.5" /> Dashboard
           </Link>
         </div>
@@ -267,44 +304,48 @@ function ContributeContent() {
 
       <div className="max-w-3xl mx-auto px-6 py-10">
         {/* Progress Steps */}
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-6 mb-10">
           {steps.map((s, i) => (
-            <div key={s.num} className="flex items-center gap-3">
+            <div key={s.num} className="flex items-center gap-6">
               <button
                 onClick={() => { if (s.num < step) { setStep(s.num); setError(null); } }}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                  step === s.num ? "bg-teal-600 text-white" :
-                  step > s.num ? "bg-teal-900 text-teal-300 cursor-pointer hover:bg-teal-800" :
-                  "bg-gray-800 text-gray-500"
-                }`}
+                className="flex items-center gap-2 text-sm font-medium transition-colors"
+                style={{
+                  color: step === s.num ? '#F2F2FF' : step > s.num ? '#6398FF' : 'rgba(255,255,255,0.3)',
+                  cursor: s.num < step ? 'pointer' : 'default',
+                }}
               >
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${
-                  step > s.num ? "bg-teal-400 text-teal-950" : "bg-white/10"
-                }`}>
-                  {step > s.num ? "✓" : s.num}
+                <span
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold"
+                  style={{
+                    background: step === s.num ? '#F2F2FF' : step > s.num ? '#6398FF' : 'rgba(255,255,255,0.08)',
+                    color: step === s.num ? '#141414' : step > s.num ? '#141414' : 'rgba(255,255,255,0.3)',
+                  }}
+                >
+                  {step > s.num ? <CheckCircle className="w-3.5 h-3.5" /> : s.num}
                 </span>
                 {s.label}
               </button>
-              {i < steps.length - 1 && <ChevronRight className="w-4 h-4 text-gray-600" />}
+              {i < steps.length - 1 && <ChevronRight className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.15)' }} />}
             </div>
           ))}
         </div>
 
-        {error && <div className="mb-4 p-3 bg-red-950 border border-red-800 rounded-lg text-sm text-red-400">{error}</div>}
+        {error && <div className="mb-6 py-3 px-4 rounded-lg text-sm" style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171' }}>{error}</div>}
 
-        {/* ══ STEP 1: SCHOOL ══ */}
+        {/* STEP 1: SCHOOL */}
         {step === 1 && !addingNewSchool && (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-white">Find Your School</h2>
-            <p className="text-sm text-gray-400">Search for your school. If it&apos;s not in our system yet, you can add it.</p>
+          <div className="rounded-2xl p-7 space-y-5 animate-[fadeIn_0.3s_ease-out]" style={{ background: '#1e1e1e', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <h2 className="text-lg font-semibold font-display" style={{ color: '#F2F2FF' }}>Find Your School</h2>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>Search for your school. If it&apos;s not in our system yet, you can add it.</p>
 
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'rgba(255,255,255,0.3)' }} />
               <input
                 value={schoolSearch}
                 onChange={(e) => { setSchoolSearch(e.target.value); setSelectedSchool(null); }}
                 placeholder="Start typing your school name..."
-                className="w-full h-11 pl-10 pr-3 bg-gray-950 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className={`w-full h-12 pl-10 pr-3 ${ic}`}
                 autoFocus
               />
             </div>
@@ -315,28 +356,29 @@ function ContributeContent() {
                   <button
                     key={s.id}
                     onClick={() => setSelectedSchool(s)}
-                    className={`w-full text-left p-3 rounded-lg border transition-all flex items-center justify-between ${
-                      selectedSchool?.id === s.id
-                        ? "bg-teal-950 border-teal-700"
-                        : "bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600"
-                    }`}
+                    className="w-full text-left p-4 rounded-xl transition-all duration-200 flex items-center justify-between"
+                    style={{
+                      background: selectedSchool?.id === s.id ? 'rgba(99,152,255,0.07)' : 'transparent',
+                      border: selectedSchool?.id === s.id ? '1px solid rgba(99,152,255,0.2)' : '1px solid rgba(255,255,255,0.08)',
+                    }}
                   >
                     <div>
-                      <div className="text-sm font-medium text-white">{s.name}</div>
-                      {s.location && <div className="text-xs text-gray-400 mt-0.5">{s.location}</div>}
+                      <div className="text-sm font-medium" style={{ color: '#F2F2FF' }}>{s.name}</div>
+                      {s.location && <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{s.location}</div>}
                     </div>
-                    {selectedSchool?.id === s.id && <CheckCircle className="w-5 h-5 text-teal-400" />}
+                    {selectedSchool?.id === s.id && <CheckCircle className="w-5 h-5" style={{ color: '#6398FF' }} />}
                   </button>
                 ))}
               </div>
             )}
 
             {schoolSearch.trim() && filteredSchools.length === 0 && (
-              <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 text-center space-y-2">
-                <p className="text-sm text-gray-400">No school found matching &quot;{schoolSearch}&quot;</p>
+              <div className="rounded-xl p-5 text-center space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>No school found matching &quot;{schoolSearch}&quot;</p>
                 <button
                   onClick={() => { setAddingNewSchool(true); setNewSchoolName(schoolSearch); setError(null); }}
-                  className="text-sm text-teal-400 hover:text-teal-300 font-medium inline-flex items-center gap-1"
+                  className="text-sm font-medium inline-flex items-center gap-1 transition-colors duration-200"
+                  style={{ color: '#6398FF' }}
                 >
                   <Plus className="w-4 h-4" /> Add &quot;{schoolSearch}&quot; as a new school
                 </button>
@@ -346,7 +388,8 @@ function ContributeContent() {
             {selectedSchool && (
               <button
                 onClick={() => { setStep(2); setError(null); }}
-                className="w-full h-11 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+                className="w-full h-12 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200"
+                style={{ background: '#F2F2FF', color: '#141414' }}
               >
                 Continue with {selectedSchool.name} <ArrowRight className="w-4 h-4" />
               </button>
@@ -354,24 +397,24 @@ function ContributeContent() {
           </div>
         )}
 
-        {/* ══ STEP 1b: ADD NEW SCHOOL ══ */}
+        {/* STEP 1b: ADD NEW SCHOOL */}
         {step === 1 && addingNewSchool && (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
+          <div className="rounded-2xl p-7 space-y-5 animate-[fadeIn_0.3s_ease-out]" style={{ background: '#1e1e1e', border: '1px solid rgba(255,255,255,0.1)' }}>
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-white">Add a New School</h2>
-              <button onClick={() => { setAddingNewSchool(false); setError(null); }} className="text-sm text-gray-400 hover:text-gray-300">Cancel</button>
+              <h2 className="text-lg font-semibold font-display" style={{ color: '#F2F2FF' }}>Add a New School</h2>
+              <button onClick={() => { setAddingNewSchool(false); setError(null); }} className="text-sm transition-opacity hover:opacity-80" style={{ color: 'rgba(255,255,255,0.45)' }}>Cancel</button>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-300 block mb-1.5">School Name *</label>
+              <label className="text-sm font-medium block mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>School Name *</label>
               <input value={newSchoolName} onChange={(e) => setNewSchoolName(e.target.value)} placeholder="e.g. Lincoln High School" className={ic} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-300 block mb-1.5">Location</label>
+                <label className="text-sm font-medium block mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Location</label>
                 <input value={newSchoolLocation} onChange={(e) => setNewSchoolLocation(e.target.value)} placeholder="e.g. Springfield, CA" className={ic} />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-300 block mb-1.5">Type</label>
+                <label className="text-sm font-medium block mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Type</label>
                 <select value={newSchoolType} onChange={(e) => setNewSchoolType(e.target.value)} className={ic}>
                   <option value="public">Public</option>
                   <option value="private">Private</option>
@@ -383,52 +426,53 @@ function ContributeContent() {
             <button
               disabled={!newSchoolName.trim() || savingSchool}
               onClick={saveSchool}
-              className="w-full h-11 bg-teal-600 hover:bg-teal-500 disabled:opacity-40 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+              className="w-full h-12 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{ background: '#F2F2FF', color: '#141414' }}
             >
-              {savingSchool ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-              Add School &amp; Continue
+              {savingSchool ? <TextShimmer duration={1} className="text-sm [--base-color:theme(colors.white/0.5)] [--base-gradient-color:theme(colors.white)] dark:[--base-color:theme(colors.white/0.5)] dark:[--base-gradient-color:theme(colors.white)]">Saving school...</TextShimmer> : <><Plus className="w-4 h-4" /> Add School &amp; Continue</>}
             </button>
           </div>
         )}
 
-        {/* ══ STEP 2: TEACHER ══ */}
+        {/* STEP 2: TEACHER */}
         {step === 2 && !addingNewTeacher && (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
-            <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+          <div className="rounded-2xl p-7 space-y-5 animate-[fadeIn_0.3s_ease-out]" style={{ background: '#1e1e1e', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
               <School className="w-3.5 h-3.5" /> {selectedSchool?.name}
             </div>
-            <h2 className="text-lg font-semibold text-white">Select a Teacher</h2>
+            <h2 className="text-lg font-semibold font-display" style={{ color: '#F2F2FF' }}>Select a Teacher</h2>
 
             {teachers.length > 0 ? (
               <>
-                <p className="text-sm text-gray-400">Choose the teacher whose essay you want to upload, or add a new one.</p>
+                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>Choose the teacher whose essay you want to upload, or add a new one.</p>
                 <div className="space-y-2">
                   {teachers.map((t) => (
                     <button
                       key={t.id}
                       onClick={() => setSelectedTeacher(t)}
-                      className={`w-full text-left p-3 rounded-lg border transition-all flex items-center justify-between ${
-                        selectedTeacher?.id === t.id
-                          ? "bg-teal-950 border-teal-700"
-                          : "bg-gray-800 border-gray-700 hover:bg-gray-750 hover:border-gray-600"
-                      }`}
+                      className="w-full text-left p-4 rounded-xl transition-all duration-200 flex items-center justify-between"
+                      style={{
+                        background: selectedTeacher?.id === t.id ? 'rgba(99,152,255,0.07)' : 'transparent',
+                        border: selectedTeacher?.id === t.id ? '1px solid rgba(99,152,255,0.2)' : '1px solid rgba(255,255,255,0.08)',
+                      }}
                     >
                       <div>
-                        <div className="text-sm font-medium text-white">{t.name}</div>
-                        <div className="text-xs text-gray-400 mt-0.5">{t.department}{t.subjects && t.subjects.length > 0 ? ` • ${t.subjects.join(", ")}` : ""}</div>
+                        <div className="text-sm font-medium" style={{ color: '#F2F2FF' }}>{t.name}</div>
+                        <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{t.department}{t.subjects && t.subjects.length > 0 ? ` · ${t.subjects.join(", ")}` : ""}</div>
                       </div>
-                      {selectedTeacher?.id === t.id && <CheckCircle className="w-5 h-5 text-teal-400" />}
+                      {selectedTeacher?.id === t.id && <CheckCircle className="w-5 h-5" style={{ color: '#6398FF' }} />}
                     </button>
                   ))}
                 </div>
               </>
             ) : (
-              <p className="text-sm text-gray-400">No teachers added yet at {selectedSchool?.name}. Add one below.</p>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>No teachers added yet at {selectedSchool?.name}. Add one below.</p>
             )}
 
             <button
               onClick={() => { setAddingNewTeacher(true); setError(null); }}
-              className="text-sm text-teal-400 hover:text-teal-300 font-medium inline-flex items-center gap-1"
+              className="text-sm font-medium inline-flex items-center gap-1 transition-colors duration-200"
+              style={{ color: '#6398FF' }}
             >
               <Plus className="w-4 h-4" /> Add a new teacher
             </button>
@@ -436,7 +480,8 @@ function ContributeContent() {
             {selectedTeacher && (
               <button
                 onClick={() => { setStep(3); setError(null); }}
-                className="w-full h-11 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+                className="w-full h-12 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200"
+                style={{ background: '#F2F2FF', color: '#141414' }}
               >
                 Continue with {selectedTeacher.name} <ArrowRight className="w-4 h-4" />
               </button>
@@ -444,191 +489,133 @@ function ContributeContent() {
           </div>
         )}
 
-        {/* ══ STEP 2b: ADD NEW TEACHER ══ */}
+        {/* STEP 2b: ADD NEW TEACHER */}
         {step === 2 && addingNewTeacher && (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
-            <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+          <div className="rounded-2xl p-7 space-y-5 animate-[fadeIn_0.3s_ease-out]" style={{ background: '#1e1e1e', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
               <School className="w-3.5 h-3.5" /> {selectedSchool?.name}
             </div>
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-white">Add a New Teacher</h2>
+              <h2 className="text-lg font-semibold font-display" style={{ color: '#F2F2FF' }}>Add a New Teacher</h2>
               {teachers.length > 0 && (
-                <button onClick={() => { setAddingNewTeacher(false); setError(null); }} className="text-sm text-gray-400 hover:text-gray-300">Cancel</button>
+                <button onClick={() => { setAddingNewTeacher(false); setError(null); }} className="text-sm transition-opacity hover:opacity-80" style={{ color: 'rgba(255,255,255,0.45)' }}>Cancel</button>
               )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-300 block mb-1.5">Teacher Name *</label>
+                <label className="text-sm font-medium block mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Teacher Name *</label>
                 <input value={newTeacherName} onChange={(e) => setNewTeacherName(e.target.value)} placeholder="e.g. Ms. Johnson" className={ic} />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-300 block mb-1.5">Department</label>
+                <label className="text-sm font-medium block mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Department</label>
                 <input value={newTeacherDept} onChange={(e) => setNewTeacherDept(e.target.value)} placeholder="e.g. English" className={ic} />
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-300 block mb-1.5">Subjects (comma-separated)</label>
+              <label className="text-sm font-medium block mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Subjects (comma-separated)</label>
               <input value={newTeacherSubjects} onChange={(e) => setNewTeacherSubjects(e.target.value)} placeholder="e.g. AP English Lit, English 11" className={ic} />
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-300 block mb-1.5">Grading Style</label>
+              <label className="text-sm font-medium block mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Grading Style</label>
               <textarea value={newTeacherGradingStyle} onChange={(e) => setNewTeacherGradingStyle(e.target.value)}
                 placeholder="e.g. Strict about thesis statements, loves evidence-based arguments..." className={`${tc} min-h-[80px]`} />
             </div>
             <button
               disabled={!newTeacherName.trim() || savingTeacher}
               onClick={saveTeacher}
-              className="w-full h-11 bg-teal-600 hover:bg-teal-500 disabled:opacity-40 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+              className="w-full h-12 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{ background: '#F2F2FF', color: '#141414' }}
             >
-              {savingTeacher ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-              Add Teacher &amp; Continue
+              {savingTeacher ? <TextShimmer duration={1} className="text-sm [--base-color:theme(colors.white/0.5)] [--base-gradient-color:theme(colors.white)] dark:[--base-color:theme(colors.white/0.5)] dark:[--base-gradient-color:theme(colors.white)]">Saving teacher...</TextShimmer> : <><UserPlus className="w-4 h-4" /> Add Teacher &amp; Continue</>}
             </button>
           </div>
         )}
 
-        {/* ══ STEP 3: UPLOAD ESSAY ══ */}
+        {/* STEP 3: UPLOAD ESSAY */}
         {step === 3 && (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-5">
-            <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+          <div className="rounded-2xl p-7 space-y-5 animate-[fadeIn_0.3s_ease-out]" style={{ background: '#1e1e1e', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
               <School className="w-3.5 h-3.5" /> {selectedSchool?.name} <ChevronRight className="w-3 h-3" /> {selectedTeacher?.name}
             </div>
 
             {essaySuccess ? (
-              <div className="text-center space-y-4 py-6">
-                <div className="w-14 h-14 bg-emerald-950 rounded-2xl flex items-center justify-center mx-auto">
-                  <CheckCircle className="w-7 h-7 text-emerald-400" />
+              <div className="text-center space-y-4 py-8">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto" style={{ background: 'rgba(16,185,129,0.1)' }}>
+                  <CheckCircle className="w-8 h-8" style={{ color: '#34d399' }} />
                 </div>
-                <h2 className="text-lg font-semibold text-white">Essay Uploaded!</h2>
-                <p className="text-sm text-gray-400">The AI will use this to learn {selectedTeacher?.name}&apos;s grading style.</p>
+                <h2 className="text-xl font-semibold font-display" style={{ color: '#F2F2FF' }}>Essay Uploaded!</h2>
+                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>The AI will use this to learn {selectedTeacher?.name}&apos;s grading style.</p>
                 <div className="flex gap-3 justify-center">
-                  <button onClick={() => { setEssaySuccess(false); }} className="h-10 px-5 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-sm font-medium transition-colors">
+                  <button
+                    onClick={() => { setEssaySuccess(false); }}
+                    className="h-11 px-6 rounded-xl text-sm font-semibold transition-colors duration-200"
+                    style={{ background: '#F2F2FF', color: '#141414' }}
+                  >
                     Upload Another Essay
                   </button>
-                  <Link href="/dashboard" className="h-10 px-5 bg-gray-800 hover:bg-gray-700 text-white rounded-lg text-sm font-medium inline-flex items-center transition-colors">
+                  <Link
+                    href="/dashboard"
+                    className="h-11 px-6 rounded-xl text-sm font-medium inline-flex items-center transition-colors duration-200"
+                    style={{ background: 'transparent', color: '#F2F2FF', border: '1px solid rgba(255,255,255,0.15)' }}
+                  >
                     Back to Dashboard
                   </Link>
                 </div>
               </div>
             ) : (
               <>
-                <h2 className="text-lg font-semibold text-white">Upload a Graded Essay</h2>
-                <p className="text-sm text-gray-400">Import from Google Docs to auto-extract the essay and teacher comments, or enter everything manually.</p>
+                <h2 className="text-lg font-semibold font-display" style={{ color: '#F2F2FF' }}>Upload a Graded Essay</h2>
+                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>Import from Google Docs to auto-extract the essay and teacher comments, then enter the grade you received.</p>
 
-                {/* Mode Toggle */}
-                <div className="flex gap-2">
-                  <button onClick={() => setImportMode("google")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${importMode === "google" ? "bg-blue-600 text-white" : "bg-gray-800 border border-gray-700 text-gray-400 hover:bg-gray-700"}`}>
-                    <FileText className="w-4 h-4" />Google Docs
-                  </button>
-                  <button onClick={() => setImportMode("manual")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${importMode === "manual" ? "bg-blue-600 text-white" : "bg-gray-800 border border-gray-700 text-gray-400 hover:bg-gray-700"}`}>
-                    <Upload className="w-4 h-4" />Manual Entry
-                  </button>
-                </div>
-
-                {/* Google Import */}
-                {importMode === "google" && (
-                  <div className="space-y-4">
-                    {!googleConnected ? (
-                      <div className="bg-gray-800 border border-gray-700 rounded-lg p-5 text-center space-y-3">
-                        <div className="w-12 h-12 bg-blue-950 rounded-xl flex items-center justify-center mx-auto">
-                          <FileText className="w-6 h-6 text-blue-400" />
-                        </div>
-                        <h3 className="text-sm font-semibold text-white">Connect Your Google Account</h3>
-                        <p className="text-xs text-gray-400 max-w-sm mx-auto">Link your Google account to import essays directly from Google Docs.</p>
-                        <button onClick={connectGoogle}
-                          className="h-10 px-6 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium inline-flex items-center gap-2 transition-colors">
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
-                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                          </svg>
-                          Connect Google
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex gap-2">
-                          <div className="flex-1 relative">
-                            <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                            <input value={googleDocUrl} onChange={(e) => setGoogleDocUrl(e.target.value)}
-                              placeholder="Paste Google Docs URL..."
-                              className="w-full h-10 pl-10 pr-3 bg-gray-950 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                          </div>
-                          <button onClick={importGoogleDoc} disabled={!googleDocUrl.trim() || importing}
-                            className="h-10 px-5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-lg text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap">
-                            {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />} Import
-                          </button>
-                        </div>
-                        {imported && (
-                          <div className="p-3 bg-blue-950 border border-blue-800 rounded-lg text-sm text-blue-400 flex items-center gap-2">
-                            <CheckCircle className="w-4 h-4" />
-                            Imported! {inlineComments.filter((c) => c.comment.trim()).length} comment{inlineComments.filter((c) => c.comment.trim()).length !== 1 ? "s" : ""} found.
-                          </div>
-                        )}
-                      </>
-                    )}
+                {/* Google Drive Import */}
+                {!googleConnected ? (
+                  <div className="rounded-xl p-6 text-center space-y-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto" style={{ background: 'rgba(99,152,255,0.1)' }}>
+                      <FileText className="w-6 h-6" style={{ color: '#6398FF' }} />
+                    </div>
+                    <h3 className="text-sm font-semibold" style={{ color: '#F2F2FF' }}>Connect Your Google Account</h3>
+                    <p className="text-xs max-w-sm mx-auto" style={{ color: 'rgba(255,255,255,0.4)' }}>Link your Google account to import essays and teacher comments directly from Google Docs.</p>
+                    <button onClick={connectGoogle}
+                      className="h-11 px-6 rounded-xl text-sm font-medium inline-flex items-center gap-2 transition-colors duration-200"
+                      style={{ background: '#F2F2FF', color: '#141414' }}>
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                      </svg>
+                      Connect Google
+                    </button>
                   </div>
-                )}
-
-                {/* Essay Form */}
-                {(importMode === "manual" || imported) && (
+                ) : (
                   <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-300 block mb-1.5">Assignment Prompt *</label>
-                      <textarea value={essayPrompt} onChange={(e) => setEssayPrompt(e.target.value)} placeholder="What was the essay prompt?" className={`${tc} min-h-[60px]`} />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-300 block mb-1.5">
-                        Essay Text {imported ? <span className="text-blue-400 font-normal">(imported)</span> : "*"}
-                      </label>
-                      <textarea value={essayText} onChange={(e) => setEssayText(e.target.value)} placeholder="Paste the full essay..." className={`${tc} min-h-[180px] font-mono leading-relaxed`} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-gray-300 block mb-1.5">Grade (letter) *</label>
-                        <input value={essayGrade} onChange={(e) => setEssayGrade(e.target.value)} placeholder="e.g. B+" className={ic} />
+                    <button onClick={openPicker} disabled={importing}
+                      className="w-full h-12 disabled:opacity-40 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors duration-200"
+                      style={{ background: 'transparent', color: '#F2F2FF', border: '1px solid rgba(255,255,255,0.15)' }}>
+                      {importing ? <TextShimmer duration={1} className="text-sm [--base-color:theme(colors.white/0.5)] [--base-gradient-color:theme(colors.white)] dark:[--base-color:theme(colors.white/0.5)] dark:[--base-gradient-color:theme(colors.white)]">Importing from Drive...</TextShimmer> : <><FileText className="w-4 h-4" /> Choose from Google Drive</>}
+                    </button>
+                    {imported && (
+                      <div className="p-3 rounded-xl text-sm flex items-center gap-2" style={{ background: 'rgba(99,152,255,0.1)', border: '1px solid rgba(99,152,255,0.2)', color: '#6398FF' }}>
+                        <CheckCircle className="w-4 h-4" />
+                        Imported! Essay and {inlineComments.filter((c) => c.comment.trim()).length} teacher comment{inlineComments.filter((c) => c.comment.trim()).length !== 1 ? "s" : ""} extracted.
                       </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-300 block mb-1.5">Numeric Grade</label>
-                        <input type="number" value={essayNumericGrade} onChange={(e) => setEssayNumericGrade(e.target.value)} placeholder="e.g. 88" className={ic} />
-                      </div>
-                    </div>
+                    )}
+
+                    {/* Grade input */}
                     <div>
-                      <label className="text-sm font-medium text-gray-300 block mb-1.5">Teacher&apos;s End Comment</label>
-                      <textarea value={teacherEndComment} onChange={(e) => setTeacherEndComment(e.target.value)}
-                        placeholder="The teacher's overall comment..." className={`${tc} min-h-[80px]`} />
+                      <label className="text-sm font-medium block mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Grade Received *</label>
+                      <input type="number" value={essayNumericGrade} onChange={(e) => setEssayNumericGrade(e.target.value)} placeholder="e.g. 88" className={ic} />
+                      <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Enter the numeric grade your teacher gave this essay.</p>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium text-gray-300 block mb-2">
-                        Inline Comments {imported && <span className="text-blue-400 font-normal">(imported)</span>}
-                      </label>
-                      <div className="space-y-3">
-                        {inlineComments.map((c, i) => (
-                          <div key={i} className="bg-gray-800 border border-gray-700 rounded-lg p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium text-gray-400">Comment {i + 1}</span>
-                              {inlineComments.length > 1 && <button onClick={() => removeComment(i)} className="text-xs text-red-500 hover:text-red-400">Remove</button>}
-                            </div>
-                            <input value={c.excerpt} onChange={(e) => updateComment(i, "excerpt", e.target.value)}
-                              placeholder="The highlighted text..." className="w-full h-9 px-3 bg-gray-900 border border-gray-700 rounded text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
-                            <input value={c.comment} onChange={(e) => updateComment(i, "comment", e.target.value)}
-                              placeholder="Teacher's comment..." className="w-full h-9 px-3 bg-gray-900 border border-gray-700 rounded text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent" />
-                          </div>
-                        ))}
-                      </div>
-                      <button onClick={addComment} className="mt-2 text-sm text-teal-400 hover:text-teal-300 flex items-center gap-1">
-                        <Plus className="w-3.5 h-3.5" /> Add comment
-                      </button>
-                    </div>
+
+                    {/* Submit */}
                     <button
-                      disabled={!essayText.trim() || !essayPrompt.trim() || !essayGrade.trim() || savingEssay}
+                      disabled={!imported || !essayNumericGrade.trim() || savingEssay}
                       onClick={saveTrainingEssay}
-                      className="w-full h-11 bg-teal-600 hover:bg-teal-500 disabled:opacity-40 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+                      className="w-full h-12 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                      style={{ background: '#F2F2FF', color: '#141414' }}
                     >
-                      {savingEssay ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                      Upload Essay
+                      {savingEssay ? <TextShimmer duration={1} className="text-sm [--base-color:theme(colors.white/0.5)] [--base-gradient-color:theme(colors.white)] dark:[--base-color:theme(colors.white/0.5)] dark:[--base-gradient-color:theme(colors.white)]">Uploading essay...</TextShimmer> : <><Upload className="w-4 h-4" /> Upload Essay</>}
                     </button>
                   </div>
                 )}
@@ -643,7 +630,7 @@ function ContributeContent() {
 
 export default function ContributePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-950" />}>
+    <Suspense fallback={<div className="min-h-screen" style={{ background: '#141414' }} />}>
       <ContributeContent />
     </Suspense>
   );

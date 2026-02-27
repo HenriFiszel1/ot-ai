@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import {
-  GraduationCap,
   ArrowLeft,
   FileText,
   Star,
@@ -23,13 +23,11 @@ export default async function ResultsPage({
   const { id: essayId } = await params;
   const supabase = await createClient();
 
-  // Auth check
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Fetch all data in parallel
   const [essayRes, gradeRes, commentsRes, endCommentRes] = await Promise.all([
     supabase
       .from("essays")
@@ -65,7 +63,6 @@ export default async function ResultsPage({
   const schoolName =
     (essay.schools as { name: string } | null)?.name || "Unknown School";
 
-  // Count severities
   const severityCounts = { praise: 0, suggestion: 0, concern: 0 };
   comments.forEach((c) => {
     if (c.severity in severityCounts)
@@ -73,9 +70,9 @@ export default async function ResultsPage({
   });
 
   const confidenceColors: Record<string, string> = {
-    high: "bg-emerald-50 text-emerald-700",
-    medium: "bg-amber-50 text-amber-700",
-    low: "bg-red-50 text-red-700",
+    high: "bg-emerald-500/10 text-emerald-400",
+    medium: "bg-amber-500/10 text-amber-400",
+    low: "bg-red-500/10 text-red-400",
   };
 
   const severityStyles: Record<
@@ -83,21 +80,21 @@ export default async function ResultsPage({
     { bg: string; border: string; text: string; label: string }
   > = {
     praise: {
-      bg: "bg-emerald-50",
-      border: "border-emerald-300",
-      text: "text-emerald-800",
+      bg: "bg-emerald-500/[0.07]",
+      border: "border-emerald-500/15",
+      text: "text-emerald-400",
       label: "Strength",
     },
     suggestion: {
-      bg: "bg-amber-50",
-      border: "border-amber-300",
-      text: "text-amber-800",
+      bg: "bg-amber-500/[0.07]",
+      border: "border-amber-500/15",
+      text: "text-amber-400",
       label: "Suggestion",
     },
     concern: {
-      bg: "bg-red-50",
-      border: "border-red-300",
-      text: "text-red-800",
+      bg: "bg-red-500/[0.07]",
+      border: "border-red-500/15",
+      text: "text-red-400",
       label: "Needs Work",
     },
   };
@@ -116,25 +113,19 @@ export default async function ResultsPage({
     return <AlertTriangle className={className || "w-4 h-4"} />;
   };
 
-  // Render essay paragraphs
   const paragraphs: string[] = essay.essay_text.split("\n\n").filter(Boolean);
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-navy-900">
       {/* Header */}
-      <header className="bg-gray-900 border-b border-gray-800">
+      <header className="bg-navy-800/80 backdrop-blur-xl border-b border-white/[0.06]">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-teal-700 rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-lg font-semibold text-white tracking-tight">
-              Optimize Teacher
-            </span>
+          <Link href="/dashboard" className="flex items-center gap-3">
+            <Image src="/optimize-ai-logo.png" alt="Optimize AI" width={130} height={32} className="h-8 w-auto" />
           </Link>
           <Link
             href="/dashboard"
-            className="text-sm text-gray-400 hover:text-gray-300 flex items-center gap-1"
+            className="text-sm text-gray-400 hover:text-gray-300 flex items-center gap-1.5 transition-colors duration-200"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Dashboard
           </Link>
@@ -144,18 +135,18 @@ export default async function ResultsPage({
       <div className="max-w-6xl mx-auto px-6 py-10">
         {/* Grade Header */}
         {grade && (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-6">
+          <div className="bg-navy-800 border border-white/[0.06] rounded-2xl p-7 mb-6">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
               <div className="flex items-center gap-6">
                 <div className="text-center">
-                  <div className="text-5xl font-bold text-white">
+                  <div className="text-5xl font-extrabold text-white font-display tracking-tight">
                     {grade.letter_grade}
                   </div>
-                  <div className="text-lg text-gray-400 mt-1">
+                  <div className="text-lg text-gray-400 mt-1 font-display">
                     {grade.numeric_grade}/100
                   </div>
                 </div>
-                <div className="w-px h-16 bg-gray-200 hidden lg:block" />
+                <div className="w-px h-16 bg-white/[0.06] hidden lg:block" />
                 <div>
                   <div className="text-sm text-gray-400">
                     Predicted grade from{" "}
@@ -166,30 +157,27 @@ export default async function ResultsPage({
                   </div>
                   <div className="flex items-center gap-2 mt-2">
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${
+                      className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${
                         confidenceColors[grade.confidence] || ""
                       }`}
                     >
                       {grade.confidence} confidence
                     </span>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-500">
                       {comments.length} comments
                     </span>
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-1.5 text-emerald-600">
-                  <Star className="w-4 h-4" /> {severityCounts.praise}{" "}
-                  strengths
+                <div className="flex items-center gap-1.5 text-emerald-400">
+                  <Star className="w-4 h-4" /> {severityCounts.praise} strengths
                 </div>
-                <div className="flex items-center gap-1.5 text-amber-600">
-                  <Lightbulb className="w-4 h-4" />{" "}
-                  {severityCounts.suggestion} suggestions
+                <div className="flex items-center gap-1.5 text-amber-400">
+                  <Lightbulb className="w-4 h-4" /> {severityCounts.suggestion} suggestions
                 </div>
-                <div className="flex items-center gap-1.5 text-red-600">
-                  <AlertTriangle className="w-4 h-4" />{" "}
-                  {severityCounts.concern} concerns
+                <div className="flex items-center gap-1.5 text-red-400">
+                  <AlertTriangle className="w-4 h-4" /> {severityCounts.concern} concerns
                 </div>
               </div>
             </div>
@@ -200,20 +188,20 @@ export default async function ResultsPage({
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Essay Panel */}
           <div className="lg:col-span-3">
-            <div className="bg-gray-900 border border-gray-800 rounded-xl">
-              <div className="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
-                <h2 className="text-base font-semibold text-white flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-gray-400" /> Your Essay
+            <div className="bg-navy-800 border border-white/[0.06] rounded-2xl">
+              <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
+                <h2 className="text-base font-semibold text-white flex items-center gap-2 font-display">
+                  <FileText className="w-4 h-4 text-gray-500" /> Your Essay
                 </h2>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-500">
                   {essay.word_count || "—"} words
                 </span>
               </div>
-              <div className="p-5">
+              <div className="p-6">
                 {paragraphs.map((para, i) => (
                   <p
                     key={i}
-                    className="mb-4 text-sm leading-[1.8] text-gray-300"
+                    className="mb-4 text-sm leading-[1.8] text-gray-300 font-serif"
                   >
                     {para}
                   </p>
@@ -226,8 +214,8 @@ export default async function ResultsPage({
           <div className="lg:col-span-2 space-y-4">
             {/* Comments */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-1.5 mb-3">
-                <MessageSquare className="w-4 h-4" /> Inline Comments
+              <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-1.5 mb-3 font-display">
+                <MessageSquare className="w-4 h-4 text-gray-500" /> Inline Comments
               </h3>
               <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
                 {comments.map((comment) => {
@@ -235,7 +223,7 @@ export default async function ResultsPage({
                   return (
                     <div
                       key={comment.id}
-                      className={`rounded-lg p-3 border ${style.bg} ${style.border}`}
+                      className={`rounded-xl p-3.5 border ${style.bg} ${style.border}`}
                     >
                       <div className="flex items-start gap-2">
                         <SeverityIcon
@@ -250,13 +238,11 @@ export default async function ResultsPage({
                               {style.label} — {comment.category}
                             </span>
                           </div>
-                          <p className="text-xs text-gray-400 leading-relaxed">
+                          <p className="text-xs text-gray-300 leading-relaxed">
                             {comment.comment_text}
                           </p>
-                          <p className="text-[11px] text-gray-400 mt-1.5 italic truncate">
-                            &ldquo;
-                            {comment.excerpt?.slice(0, 60)}
-                            ...&rdquo;
+                          <p className="text-[11px] text-gray-500 mt-1.5 italic font-serif truncate">
+                            &ldquo;{comment.excerpt?.slice(0, 60)}...&rdquo;
                           </p>
                         </div>
                       </div>
@@ -268,15 +254,12 @@ export default async function ResultsPage({
 
             {/* End Comment */}
             {endComment && (
-              <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-1.5 mb-2">
-                  <Eye className="w-4 h-4 text-gray-400" /> End Comment
+              <div className="bg-navy-800 border border-white/[0.06] rounded-xl p-5">
+                <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-1.5 mb-3 font-display">
+                  <Eye className="w-4 h-4 text-gray-500" /> End Comment
                 </h3>
                 {endComment.comment_text.split("\n\n").map((p: string, i: number) => (
-                  <p
-                    key={i}
-                    className="text-xs text-gray-400 leading-relaxed mb-2"
-                  >
+                  <p key={i} className="text-xs text-gray-400 leading-relaxed mb-2 font-serif">
                     {p}
                   </p>
                 ))}
@@ -286,17 +269,14 @@ export default async function ResultsPage({
             {/* Grade Reasoning */}
             {grade && (
               <>
-                <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-white mb-3">
+                <div className="bg-navy-800 border border-white/[0.06] rounded-xl p-5">
+                  <h3 className="text-sm font-semibold text-white mb-3 font-display">
                     Grade Reasoning
                   </h3>
                   <div className="space-y-2">
                     {grade.reasoning?.map((r: string, i: number) => (
-                      <div
-                        key={i}
-                        className="flex items-start gap-2 text-xs text-gray-400"
-                      >
-                        <span className="w-4 h-4 rounded-full bg-gray-800 text-gray-400 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">
+                      <div key={i} className="flex items-start gap-2 text-xs text-gray-400">
+                        <span className="w-4 h-4 rounded-full bg-white/[0.04] text-gray-500 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">
                           {i + 1}
                         </span>
                         <span className="leading-relaxed">{r}</span>
@@ -306,15 +286,12 @@ export default async function ResultsPage({
                 </div>
 
                 {/* Strengths */}
-                <div className="bg-emerald-50/50 border border-emerald-200 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-emerald-800 flex items-center gap-1.5 mb-2">
+                <div className="bg-emerald-500/[0.05] border border-emerald-500/15 rounded-xl p-5">
+                  <h3 className="text-sm font-semibold text-emerald-400 flex items-center gap-1.5 mb-3 font-display">
                     <Star className="w-4 h-4" /> Strengths
                   </h3>
                   {grade.strengths?.map((s: string, i: number) => (
-                    <div
-                      key={i}
-                      className="flex items-start gap-2 text-xs text-emerald-700 mb-1.5"
-                    >
+                    <div key={i} className="flex items-start gap-2 text-xs text-emerald-300/80 mb-1.5">
                       <CheckCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
                       <span className="leading-relaxed">{s}</span>
                     </div>
@@ -322,15 +299,12 @@ export default async function ResultsPage({
                 </div>
 
                 {/* Weaknesses */}
-                <div className="bg-amber-50/50 border border-amber-200 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-amber-800 flex items-center gap-1.5 mb-2">
+                <div className="bg-amber-500/[0.05] border border-amber-500/15 rounded-xl p-5">
+                  <h3 className="text-sm font-semibold text-amber-400 flex items-center gap-1.5 mb-3 font-display">
                     <AlertTriangle className="w-4 h-4" /> Areas for Improvement
                   </h3>
                   {grade.weaknesses?.map((w: string, i: number) => (
-                    <div
-                      key={i}
-                      className="flex items-start gap-2 text-xs text-amber-700 mb-1.5"
-                    >
+                    <div key={i} className="flex items-start gap-2 text-xs text-amber-300/80 mb-1.5">
                       <Lightbulb className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
                       <span className="leading-relaxed">{w}</span>
                     </div>
@@ -341,29 +315,23 @@ export default async function ResultsPage({
 
             {/* Next Steps */}
             {endComment?.next_steps?.length > 0 && (
-              <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-white flex items-center gap-1.5 mb-3">
-                  <Target className="w-4 h-4 text-teal-400" /> Revision
-                  Priorities
+              <div className="bg-navy-800 border border-white/[0.06] rounded-xl p-5">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-1.5 mb-3 font-display">
+                  <Target className="w-4 h-4 text-brand-400" /> Revision Priorities
                 </h3>
                 <div className="space-y-2">
                   {endComment.next_steps.map((step: string, i: number) => (
-                    <div
-                      key={i}
-                      className="flex items-start gap-3 p-2.5 bg-gray-900 rounded-lg"
-                    >
+                    <div key={i} className="flex items-start gap-3 p-3 bg-navy-900/40 rounded-xl">
                       <span
                         className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
                           i === 0
-                            ? "bg-teal-100 text-teal-400"
-                            : "bg-gray-200 text-gray-400"
+                            ? "bg-brand-500/15 text-brand-400"
+                            : "bg-white/[0.04] text-gray-500"
                         }`}
                       >
                         {i + 1}
                       </span>
-                      <p className="text-xs text-gray-300 leading-relaxed">
-                        {step}
-                      </p>
+                      <p className="text-xs text-gray-300 leading-relaxed">{step}</p>
                     </div>
                   ))}
                 </div>
@@ -374,13 +342,13 @@ export default async function ResultsPage({
             <div className="space-y-2">
               <Link
                 href="/analyze"
-                className="w-full h-10 bg-teal-700 hover:bg-teal-600 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+                className="w-full h-11 bg-brand-500 hover:bg-brand-400 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors duration-200 shadow-[0_0_20px_rgba(74,127,255,0.2)]"
               >
                 <PenLine className="w-4 h-4" /> Submit a Revised Essay
               </Link>
               <Link
                 href="/dashboard"
-                className="w-full h-10 border border-gray-700 hover:bg-gray-900 text-gray-300 rounded-lg text-sm font-medium flex items-center justify-center transition-colors"
+                className="w-full h-11 border border-white/[0.08] hover:bg-navy-800 text-gray-300 rounded-xl text-sm font-medium flex items-center justify-center transition-colors duration-200"
               >
                 Back to Dashboard
               </Link>

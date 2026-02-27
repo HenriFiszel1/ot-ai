@@ -237,6 +237,28 @@ CREATE TABLE teacher_comment_training (
 
 CREATE INDEX idx_training_teacher ON teacher_comment_training(teacher_id);
 
+-- ─── TRAINING ESSAYS ─────────────────────────────────────
+-- Full graded essays uploaded by students for teacher model training.
+-- These include the actual grade + teacher comments.
+CREATE TABLE training_essays (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  teacher_id UUID NOT NULL REFERENCES teachers(id) ON DELETE CASCADE,
+  school_id UUID NOT NULL REFERENCES schools(id),
+  submitted_by UUID REFERENCES students(id),
+
+  essay_text TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  letter_grade TEXT,
+  numeric_grade NUMERIC(5,2),
+  teacher_end_comment TEXT,
+  inline_comments JSONB DEFAULT '[]',
+
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_training_essays_teacher ON training_essays(teacher_id);
+CREATE INDEX idx_training_essays_school ON training_essays(school_id);
+
 -- ─── ROW LEVEL SECURITY ───────────────────────────────────
 -- Enable RLS on all tables
 ALTER TABLE schools ENABLE ROW LEVEL SECURITY;
@@ -249,6 +271,7 @@ ALTER TABLE inline_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE end_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE actual_grades ENABLE ROW LEVEL SECURITY;
 ALTER TABLE teacher_comment_training ENABLE ROW LEVEL SECURITY;
+ALTER TABLE training_essays ENABLE ROW LEVEL SECURITY;
 
 -- Public read access to schools and teachers
 CREATE POLICY "Public can view schools"
@@ -336,3 +359,19 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER on_essay_insert
   AFTER INSERT ON essays
   FOR EACH ROW EXECUTE FUNCTION increment_teacher_essay_count();
+
+CREATE TRIGGER on_training_essay_insert
+  AFTER INSERT ON training_essays
+  FOR EACH ROW EXECUTE FUNCTION increment_teacher_essay_count();
+
+-- Authenticated users can insert training essays
+CREATE POLICY "Authenticated users can insert training essays"
+  ON training_essays FOR INSERT
+  WITH CHECK (auth.uid() IS NOT NULL);
+
+-- Users can view their own training essays
+CREATE POLICY "Users can view own training essays"
+  ON training_essays FOR SELECT
+  USING (submitted_by IN (
+    SELECT id FROM students WHERE auth_user_id = auth.uid()
+  ));

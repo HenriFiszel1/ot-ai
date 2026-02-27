@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
-import { GraduationCap, ArrowRight, Loader2, CheckCircle } from "lucide-react";
+import { ArrowRight, Loader2, CheckCircle } from "lucide-react";
+import { TextShimmer } from "@/components/ui/text-shimmer";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -39,19 +41,19 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-6">
+      <div className="min-h-screen bg-navy-900 flex flex-col items-center justify-center px-6">
         <div className="w-full max-w-sm text-center">
-          <div className="w-14 h-14 bg-teal-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-7 h-7 text-teal-400" />
+          <div className="w-14 h-14 bg-brand-500/15 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-7 h-7 text-brand-400" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Check your email</h1>
+          <h1 className="text-2xl font-bold text-white font-display">Check your email</h1>
           <p className="mt-2 text-sm text-gray-400">
-            We sent a confirmation link to <strong>{email}</strong>. Click it to
+            We sent a confirmation link to <strong className="text-gray-300">{email}</strong>. Click it to
             activate your account.
           </p>
           <Link
             href="/login"
-            className="mt-6 inline-block text-sm text-teal-400 font-medium hover:underline"
+            className="mt-6 inline-block text-sm text-brand-400 font-medium hover:text-brand-300 transition-colors duration-200"
           >
             Back to login
           </Link>
@@ -60,27 +62,30 @@ export default function SignupPage() {
     );
   }
 
+  const inputClass = "w-full h-11 px-3.5 bg-navy-800 border border-white/[0.08] rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500/30 transition-colors duration-200";
+
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center px-6">
+    <div className="min-h-screen bg-navy-900 flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm">
-        <Link href="/" className="flex items-center gap-2.5 mb-8">
-          <div className="w-9 h-9 bg-teal-700 rounded-lg flex items-center justify-center">
-            <GraduationCap className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-xl font-semibold text-white tracking-tight">
-            Optimize Teacher
-          </span>
+        <Link href="/" className="flex items-center gap-3 mb-10">
+          <Image
+            src="/optimize-ai-logo.png"
+            alt="Optimize AI"
+            width={140}
+            height={36}
+            className="h-9 w-auto"
+          />
         </Link>
 
-        <h1 className="text-2xl font-bold text-white tracking-tight">
+        <h1 className="text-2xl font-bold text-white tracking-[-0.02em] font-display">
           Create your account
         </h1>
-        <p className="mt-1 text-sm text-gray-400">
+        <p className="mt-1.5 text-sm text-gray-400">
           Start getting teacher-specific essay feedback.
         </p>
 
         {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-400">
             {error}
           </div>
         )}
@@ -95,7 +100,7 @@ export default function SignupPage() {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
-              className="w-full h-10 px-3 border border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className={inputClass}
               placeholder="Alex Johnson"
             />
           </div>
@@ -108,7 +113,7 @@ export default function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full h-10 px-3 border border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className={inputClass}
               placeholder="you@school.edu"
             />
           </div>
@@ -122,17 +127,17 @@ export default function SignupPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full h-10 px-3 border border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className={inputClass}
               placeholder="Min. 6 characters"
             />
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-10 bg-teal-700 hover:bg-teal-600 disabled:opacity-50 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+            className="w-full h-11 bg-brand-500 hover:bg-brand-400 disabled:opacity-50 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors duration-200 shadow-[0_0_20px_rgba(74,127,255,0.2)]"
           >
             {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <TextShimmer duration={1} className="text-sm [--base-color:theme(colors.white/0.5)] [--base-gradient-color:theme(colors.white)] dark:[--base-color:theme(colors.white/0.5)] dark:[--base-gradient-color:theme(colors.white)]">Creating account...</TextShimmer>
             ) : (
               <>
                 Create account <ArrowRight className="w-4 h-4" />
@@ -145,7 +150,7 @@ export default function SignupPage() {
           Already have an account?{" "}
           <Link
             href="/login"
-            className="text-teal-400 font-medium hover:underline"
+            className="text-brand-400 font-medium hover:text-brand-300 transition-colors duration-200"
           >
             Sign in
           </Link>

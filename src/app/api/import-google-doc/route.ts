@@ -12,11 +12,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { doc_url, provider_token } = await request.json();
+    const { doc_url, doc_id, provider_token } = await request.json();
 
-    if (!doc_url) {
+    if (!doc_url && !doc_id) {
       return NextResponse.json(
-        { error: "Missing Google Docs URL" },
+        { error: "Missing document ID or Google Docs URL" },
         { status: 400 }
       );
     }
@@ -31,14 +31,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const match = doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
-    if (!match) {
-      return NextResponse.json(
-        { error: "Invalid Google Docs URL. Please paste a valid Google Docs link." },
-        { status: 400 }
-      );
+    let docId: string;
+    if (doc_id) {
+      docId = doc_id;
+    } else {
+      const match = doc_url.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+      if (!match) {
+        return NextResponse.json(
+          { error: "Invalid Google Docs URL. Please paste a valid Google Docs link." },
+          { status: 400 }
+        );
+      }
+      docId = match[1];
     }
-    const docId = match[1];
 
     const docRes = await fetch(
       `https://docs.googleapis.com/v1/documents/${docId}`,

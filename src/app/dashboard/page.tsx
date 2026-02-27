@@ -1,13 +1,14 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import {
-  GraduationCap,
   ArrowRight,
   FileText,
   Clock,
   LogOut,
   School,
+  Sparkles,
 } from "lucide-react";
 
 export default async function DashboardPage() {
@@ -48,23 +49,26 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950">
-      <header className="bg-gray-900 border-b border-gray-800">
-        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-lg font-semibold text-white tracking-tight">
-              Optimize Teacher
-            </span>
+    <div className="min-h-screen" style={{ background: '#141414' }}>
+      {/* Header */}
+      <header style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
+          <Link href="/dashboard" className="flex items-center gap-3">
+            <Image
+              src="/optimize-ai-logo.png"
+              alt="Optimize AI"
+              width={130}
+              height={32}
+              className="h-7 w-auto"
+            />
           </Link>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-400">{user.email}</span>
+          <div className="flex items-center gap-5">
+            <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>{user.email}</span>
             <form action="/api/auth/signout" method="POST">
               <button
                 type="submit"
-                className="text-sm text-gray-500 hover:text-gray-300 flex items-center gap-1"
+                className="text-xs font-medium flex items-center gap-1.5 transition-opacity hover:opacity-80"
+                style={{ color: 'rgba(255,255,255,0.4)' }}
               >
                 <LogOut className="w-3.5 h-3.5" /> Sign out
               </button>
@@ -73,56 +77,71 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-6 py-10">
-        <div className="flex items-center justify-between mb-8">
+      <div className="max-w-4xl mx-auto px-6 py-10">
+        {/* Page header */}
+        <div className="flex items-center justify-between mb-10">
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">
+            <h1 className="text-2xl font-semibold tracking-tight" style={{ color: '#F2F2FF' }}>
               Dashboard
             </h1>
-            <p className="mt-1 text-sm text-gray-400">
+            <p className="mt-1.5 text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
               Submit essays and view your feedback history.
             </p>
           </div>
-          <Link
-            href="/contribute"
-            className="h-10 px-5 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-sm font-medium inline-flex items-center gap-2 transition-colors"
-          >
-            <School className="w-4 h-4" /> Add School or Teacher
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/contribute"
+              className="h-10 px-5 rounded-lg text-sm font-medium inline-flex items-center gap-2 transition-opacity hover:opacity-80"
+              style={{ background: 'transparent', color: '#F2F2FF', border: '1px solid rgba(255,255,255,0.15)' }}
+            >
+              <School className="w-4 h-4" /> Add School or Teacher
+            </Link>
+            <Link
+              href="/analyze"
+              className="h-10 px-5 rounded-lg text-sm font-semibold inline-flex items-center gap-2 transition-opacity hover:opacity-90"
+              style={{ background: '#F2F2FF', color: '#141414' }}
+            >
+              <Sparkles className="w-4 h-4" /> Analyze Essay
+            </Link>
+          </div>
         </div>
 
         {recentEssays.length === 0 ? (
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-12 text-center">
-            <div className="w-14 h-14 bg-teal-950 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <FileText className="w-7 h-7 text-teal-400" />
+          /* Empty state */
+          <div className="rounded-2xl p-14 text-center" style={{ background: '#1e1e1e', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ background: 'rgba(255,255,255,0.05)' }}>
+              <FileText className="w-8 h-8" style={{ color: 'rgba(255,255,255,0.4)' }} />
             </div>
-            <h2 className="text-lg font-semibold text-white">No essays yet</h2>
-            <p className="mt-2 text-sm text-gray-400 max-w-sm mx-auto">
+            <h2 className="text-xl font-semibold tracking-tight" style={{ color: '#F2F2FF' }}>No essays yet</h2>
+            <p className="mt-2.5 text-sm max-w-sm mx-auto leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
               Submit your first essay to get teacher-specific feedback and a predicted grade.
             </p>
             <Link
               href="/analyze"
-              className="mt-6 h-10 px-6 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-sm font-medium inline-flex items-center gap-2 transition-colors"
+              className="mt-8 h-11 px-7 rounded-lg text-sm font-semibold inline-flex items-center gap-2 transition-opacity hover:opacity-90"
+              style={{ background: '#F2F2FF', color: '#141414' }}
             >
               Analyze Essay <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         ) : (
+          /* Essay list */
           <div className="space-y-2">
             {recentEssays.map((essay) => (
               <Link
                 key={essay.id}
                 href={essay.status === "completed" ? `/results/${essay.id}` : "#"}
-                className="block bg-gray-900 border border-gray-800 rounded-lg p-4 hover:border-teal-700 hover:bg-teal-900/30 transition-all"
+                className="group block rounded-xl p-5 transition-all duration-200"
+                style={{ background: '#1e1e1e', border: '1px solid rgba(255,255,255,0.08)' }}
               >
                 <div className="flex items-center justify-between">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-white truncate">
+                    <p className="text-sm font-semibold truncate" style={{ color: '#F2F2FF' }}>
                       {essay.prompt}
                     </p>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                    <div className="flex items-center gap-3 mt-1.5 text-xs font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>
                       {essay.teachers && (
-                        <span>{(essay.teachers as { name: string }).name}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.6)' }}>{(essay.teachers as { name: string }).name}</span>
                       )}
                       {essay.schools && (
                         <span>{(essay.schools as { name: string }).name}</span>
@@ -135,15 +154,16 @@ export default async function DashboardPage() {
                     </div>
                   </div>
                   <span
-                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    className="text-xs px-2.5 py-1 rounded-full font-semibold"
+                    style={
                       essay.status === "completed"
-                        ? "bg-emerald-950 text-emerald-400"
+                        ? { background: 'rgba(16,185,129,0.1)', color: '#34d399', border: '1px solid rgba(16,185,129,0.2)' }
                         : essay.status === "analyzing"
-                          ? "bg-amber-950 text-amber-400"
+                          ? { background: 'rgba(245,158,11,0.1)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.2)' }
                           : essay.status === "failed"
-                            ? "bg-red-950 text-red-400"
-                            : "bg-gray-800 text-gray-400"
-                    }`}
+                            ? { background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }
+                            : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.08)' }
+                    }
                   >
                     {essay.status}
                   </span>

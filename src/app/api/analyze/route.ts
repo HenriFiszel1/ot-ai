@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     }
 
     // ─── Get teacher + school info ───────────────────
-    const [teacherRes, schoolRes, profileRes] = await Promise.all([
+    const [teacherRes, schoolRes, profileRes, trainingRes] = await Promise.all([
       supabase.from("teachers").select("*").eq("id", teacher_id).single(),
       supabase.from("schools").select("*").eq("id", school_id).single(),
       supabase
@@ -40,11 +40,18 @@ export async function POST(request: Request) {
         .select("*")
         .eq("teacher_id", teacher_id)
         .single(),
+      supabase
+        .from("training_essays")
+        .select("essay_text, prompt, letter_grade, numeric_grade, teacher_end_comment, inline_comments")
+        .eq("teacher_id", teacher_id)
+        .order("created_at", { ascending: false })
+        .limit(10),
     ]);
 
     const teacher = teacherRes.data;
     const school = schoolRes.data;
     const profile = profileRes.data;
+    const trainingEssays = trainingRes.data || [];
 
     if (!teacher || !school) {
       return NextResponse.json(
@@ -103,6 +110,25 @@ Teacher Profile Data:
 `
       : "";
 
+    // Build training examples from real graded essays
+    let trainingContext = "";
+    if (trainingEssays.length > 0) {
+      trainingContext = `\n\n=== REAL GRADED ESSAY EXAMPLES FROM THIS TEACHER ===
+Use these past examples to understand exactly how ${teacher.name} grades, comments, and what scores they give. Mimic their tone, severity, and grading standards closely.\n\n`;
+
+      for (let i = 0; i < trainingEssays.length; i++) {
+        const te = trainingEssays[i];
+        const comments = Array.isArray(te.inline_comments) ? te.inline_comments : [];
+        trainingContext += `--- Example ${i + 1} ---
+Prompt: ${te.prompt}
+Grade Given: ${te.letter_grade || "N/A"}${te.numeric_grade ? ` (${te.numeric_grade})` : ""}
+Essay (first 500 chars): ${te.essay_text.slice(0, 500)}...
+${te.teacher_end_comment ? `Teacher's End Comment: ${te.teacher_end_comment}` : ""}
+${comments.length > 0 ? `Teacher's Inline Comments:\n${comments.map((c: { excerpt: string; comment: string }) => `  - On "${c.excerpt}": "${c.comment}"`).join("\n")}` : ""}
+\n`;
+      }
+    }
+
     const systemPrompt = `You are an AI that models a specific teacher's grading behavior to provide essay feedback. You must respond ONLY with valid JSON matching the exact schema specified — no markdown, no explanation, no code fences.
 
 TEACHER: ${teacher.name}
@@ -117,7 +143,8 @@ Your job is to:
 2. Generate line-by-line comments in this teacher's voice and style
 3. Provide an end comment summary and actionable next steps
 
-The comments should sound like this specific teacher — use their tone, emphasis areas, and level of detail.`;
+The comments should sound like this specific teacher — use their tone, emphasis areas, and level of detail.
+${trainingContext}`;
 
     const userPrompt = `Analyze this student essay and return your response as a single JSON object.
 
