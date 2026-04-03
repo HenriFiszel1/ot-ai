@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { generateEmbedding, buildEssayEmbedText } from "@/lib/embeddings";
 
 export async function POST(request: Request) {
   try {
@@ -90,6 +91,18 @@ export async function POST(request: Request) {
         associated_grade: letter_grade || null,
         submitted_by: student?.id || null,
       });
+    }
+
+    // Generate and store embedding (non-fatal — essay is saved regardless)
+    try {
+      const embedText = buildEssayEmbedText(prompt || "", essay_text);
+      const embedding = await generateEmbedding(embedText);
+      await supabase
+        .from("training_essays")
+        .update({ embedding: JSON.stringify(embedding) })
+        .eq("id", trainingEssay.id);
+    } catch (embedErr) {
+      console.error("Embedding generation failed (non-fatal):", embedErr);
     }
 
     return NextResponse.json({ id: trainingEssay.id, success: true });

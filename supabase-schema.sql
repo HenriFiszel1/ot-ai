@@ -283,6 +283,15 @@ CREATE POLICY "Public can view teachers"
 CREATE POLICY "Public can view teacher profiles"
   ON teacher_profiles FOR SELECT USING (true);
 
+-- Students can view their own student record (prevents infinite recursion in other policies)
+CREATE POLICY "Users can view own student record"
+  ON students FOR SELECT
+  USING (auth_user_id = auth.uid());
+
+CREATE POLICY "Users can insert own student record"
+  ON students FOR INSERT
+  WITH CHECK (auth_user_id = auth.uid());
+
 -- Students can view/manage their own data
 CREATE POLICY "Students can view own essays"
   ON essays FOR SELECT

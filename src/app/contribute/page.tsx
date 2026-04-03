@@ -46,6 +46,7 @@ function ContributeContent() {
   const [essayGrade, setEssayGrade] = useState("");
   const [essayNumericGrade, setEssayNumericGrade] = useState("");
   const [teacherEndComment, setTeacherEndComment] = useState("");
+  const [rubric, setRubric] = useState("");
   const [inlineComments, setInlineComments] = useState<Array<{ excerpt: string; comment: string }>>([{ excerpt: "", comment: "" }]);
   const [savingEssay, setSavingEssay] = useState(false);
   const [essaySuccess, setEssaySuccess] = useState(false);
@@ -260,13 +261,14 @@ function ContributeContent() {
           letter_grade: essayGrade || null,
           numeric_grade: essayNumericGrade ? parseFloat(essayNumericGrade) : null,
           teacher_end_comment: teacherEndComment || null,
+          rubric: rubric || null,
           inline_comments: inlineComments.filter((c) => c.excerpt.trim() && c.comment.trim()),
         }),
       });
       if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || "Failed to save"); }
       setEssaySuccess(true);
       setEssayText(""); setEssayPrompt(""); setEssayGrade(""); setEssayNumericGrade("");
-      setTeacherEndComment(""); setInlineComments([{ excerpt: "", comment: "" }]);
+      setTeacherEndComment(""); setRubric(""); setInlineComments([{ excerpt: "", comment: "" }]);
       setImported(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -589,7 +591,7 @@ function ContributeContent() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <button onClick={openPicker} disabled={importing}
+                    <button onClick={openPicker} disabled={importing || imported}
                       className="w-full h-12 disabled:opacity-40 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors duration-200"
                       style={{ background: 'transparent', color: '#F2F2FF', border: '1px solid rgba(255,255,255,0.15)' }}>
                       {importing ? <TextShimmer duration={1} className="text-sm [--base-color:theme(colors.white/0.5)] [--base-gradient-color:theme(colors.white)] dark:[--base-color:theme(colors.white/0.5)] dark:[--base-gradient-color:theme(colors.white)]">Importing from Drive...</TextShimmer> : <><FileText className="w-4 h-4" /> Choose from Google Drive</>}
@@ -606,6 +608,18 @@ function ContributeContent() {
                       <label className="text-sm font-medium block mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Grade Received *</label>
                       <input type="number" value={essayNumericGrade} onChange={(e) => setEssayNumericGrade(e.target.value)} placeholder="e.g. 88" className={ic} />
                       <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Enter the numeric grade your teacher gave this essay.</p>
+                    </div>
+
+                    {/* Rubric */}
+                    <div>
+                      <label className="text-sm font-medium block mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>Rubric</label>
+                      <textarea
+                        value={rubric}
+                        onChange={(e) => setRubric(e.target.value)}
+                        placeholder="Paste the rubric or grading criteria your teacher provided for this assignment..."
+                        className={`${tc} min-h-[100px]`}
+                      />
+                      <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Optional. Helps the AI understand how this teacher grades in relation to specific criteria.</p>
                     </div>
 
                     {/* Submit */}

@@ -218,28 +218,58 @@ export default function AnalyzePage() {
               </p>
             ) : (
               <div className="space-y-2">
-                {filteredSchools.map((school) => (
-                  <button
-                    key={school.id}
-                    onClick={() => {
-                      setSelectedSchool(school);
-                      setStep(1);
-                    }}
-                    className="w-full text-left p-4 rounded-xl transition-all duration-200 flex items-center justify-between"
-                    style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.08)' }}
-                  >
-                    <div>
-                      <div className="text-sm font-medium" style={{ color: '#F2F2FF' }}>{school.name}</div>
-                      {school.location && <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{school.location}</div>}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs capitalize" style={{ color: 'rgba(255,255,255,0.25)' }}>{school.type}</span>
-                      <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>{school.teacher_count} teachers</span>
-                      <ChevronRight className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.2)' }} />
-                    </div>
-                  </button>
-                ))}
+                {filteredSchools.map((school) => {
+                  const isSelected = selectedSchool?.id === school.id;
+                  return (
+                    <button
+                      key={school.id}
+                      onClick={() => setSelectedSchool(school)}
+                      className="w-full text-left p-4 rounded-xl transition-all duration-200 flex items-center justify-between"
+                      style={{
+                        background: isSelected ? 'rgba(99,152,255,0.07)' : 'transparent',
+                        border: isSelected
+                          ? '1px solid rgba(99,152,255,0.2)'
+                          : '1px solid rgba(255,255,255,0.08)',
+                      }}
+                    >
+                      <div>
+                        <div className="text-sm font-medium" style={{ color: '#F2F2FF' }}>{school.name}</div>
+                        {school.location && (
+                          <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                            {school.location}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs capitalize" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                          {school.type}
+                        </span>
+                        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                          {school.teacher_count} teachers
+                        </span>
+                        {isSelected ? (
+                          <CheckCircle className="w-4 h-4" style={{ color: '#6398FF' }} />
+                        ) : (
+                          <ChevronRight className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.2)' }} />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
+            )}
+
+            {selectedSchool && (
+              <button
+                onClick={() => {
+                  setStep(1);
+                  setSubmitError(null);
+                }}
+                className="w-full h-12 mt-4 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200"
+                style={{ background: '#F2F2FF', color: '#141414' }}
+              >
+                Continue with {selectedSchool.name} <ArrowRight className="w-4 h-4" />
+              </button>
             )}
           </div>
         )}
@@ -265,38 +295,58 @@ export default function AnalyzePage() {
               </p>
             ) : (
               <div className="space-y-2">
-                {teachers.map((teacher) => (
-                  <button
-                    key={teacher.id}
-                    onClick={() => {
-                      setSelectedTeacher(teacher);
-                      setStep(2);
-                    }}
-                    className="w-full text-left p-4 rounded-xl transition-all duration-200 flex items-center justify-between"
-                    style={{
-                      background: selectedTeacher?.id === teacher.id ? 'rgba(99,152,255,0.07)' : 'transparent',
-                      border: selectedTeacher?.id === teacher.id ? '1px solid rgba(99,152,255,0.2)' : '1px solid rgba(255,255,255,0.08)',
-                    }}
-                  >
-                    <div>
-                      <div className="text-sm font-medium" style={{ color: '#F2F2FF' }}>{teacher.name}</div>
-                      <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                        {teacher.department}{teacher.subjects && teacher.subjects.length > 0 ? ` · ${teacher.subjects.join(", ")}` : ""}
-                      </div>
-                      {teacher.grading_style && (
-                        <div className="text-xs mt-1.5 italic" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                          &ldquo;{teacher.grading_style}&rdquo;
+                {teachers.map((teacher) => {
+                  const isSelected = selectedTeacher?.id === teacher.id;
+                  return (
+                    <button
+                      key={teacher.id}
+                      onClick={() => setSelectedTeacher(teacher)}
+                      className="w-full text-left p-4 rounded-xl transition-all duration-200 flex items-center justify-between"
+                      style={{
+                        background: isSelected ? 'rgba(99,152,255,0.07)' : 'transparent',
+                        border: isSelected
+                          ? '1px solid rgba(99,152,255,0.2)'
+                          : '1px solid rgba(255,255,255,0.08)',
+                      }}
+                    >
+                      <div>
+                        <div className="text-sm font-medium" style={{ color: '#F2F2FF' }}>{teacher.name}</div>
+                        <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                          {teacher.department}
+                          {teacher.subjects && teacher.subjects.length > 0 ? ` · ${teacher.subjects.join(", ")}` : ""}
                         </div>
-                      )}
-                      <div className="mt-1.5 flex items-center gap-1 text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                        <FileText className="w-3 h-3" />
-                        {teacher.essays_graded.toLocaleString()} essays graded
+                        {teacher.grading_style && (
+                          <div className="text-xs mt-1.5 italic" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                            &ldquo;{teacher.grading_style}&rdquo;
+                          </div>
+                        )}
+                        <div className="mt-1.5 flex items-center gap-1 text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                          <FileText className="w-3 h-3" />
+                          {teacher.essays_graded.toLocaleString()} essays graded
+                        </div>
                       </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.2)' }} />
-                  </button>
-                ))}
+                      {isSelected ? (
+                        <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color: '#6398FF' }} />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(255,255,255,0.2)' }} />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
+            )}
+
+            {selectedTeacher && (
+              <button
+                onClick={() => {
+                  setStep(2);
+                  setSubmitError(null);
+                }}
+                className="w-full h-12 mt-4 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all duration-200"
+                style={{ background: '#F2F2FF', color: '#141414' }}
+              >
+                Continue with {selectedTeacher.name} <ArrowRight className="w-4 h-4" />
+              </button>
             )}
           </div>
         )}

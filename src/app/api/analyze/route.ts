@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import type { AnalyzeRequest, AnalysisResult } from "@/lib/types";
+import { findSimilarTrainingEssays } from "@/lib/embeddings";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
     }
 
     // ─── Get teacher + school info ───────────────────
-    const [teacherRes, schoolRes, profileRes, trainingRes] = await Promise.all([
+    const [teacherRes, schoolRes, profileRes] = await Promise.all([
       supabase.from("teachers").select("*").eq("id", teacher_id).single(),
       supabase.from("schools").select("*").eq("id", school_id).single(),
       supabase
@@ -40,18 +41,32 @@ export async function POST(request: Request) {
         .select("*")
         .eq("teacher_id", teacher_id)
         .single(),
-      supabase
-        .from("training_essays")
-        .select("essay_text, prompt, letter_grade, numeric_grade, teacher_end_comment, inline_comments")
-        .eq("teacher_id", teacher_id)
-        .order("created_at", { ascending: false })
-        .limit(10),
     ]);
 
     const teacher = teacherRes.data;
     const school = schoolRes.data;
     const profile = profileRes.data;
-    const trainingEssays = trainingRes.data || [];
+
+    // ─── Vector similarity search for training essays ─
+    // Falls back to recency if no embeddings exist yet
+    let trainingEssays: Awaited<ReturnType<typeof findSimilarTrainingEssays>> = [];
+    try {
+      trainingEssays = await findSimilarTrainingEssays(
+        essay_text,
+        prompt,
+        teacher_id,
+        10
+      );
+    } catch (embedErr) {
+      console.error("Vector search failed, falling back to recency:", embedErr);
+      const { data: fallback } = await supabase
+        .from("training_essays")
+        .select("essay_text, prompt, letter_grade, numeric_grade, teacher_end_comment, inline_comments")
+        .eq("teacher_id", teacher_id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      trainingEssays = fallback || [];
+    }
 
     if (!teacher || !school) {
       return NextResponse.json(
@@ -119,7 +134,10 @@ Use these past examples to understand exactly how ${teacher.name} grades, commen
       for (let i = 0; i < trainingEssays.length; i++) {
         const te = trainingEssays[i];
         const comments = Array.isArray(te.inline_comments) ? te.inline_comments : [];
-        trainingContext += `--- Example ${i + 1} ---
+        const similarityNote = te.similarity != null
+          ? ` [similarity: ${(te.similarity * 100).toFixed(1)}%]`
+          : "";
+        trainingContext += `--- Example ${i + 1}${similarityNote} ---
 Prompt: ${te.prompt}
 Grade Given: ${te.letter_grade || "N/A"}${te.numeric_grade ? ` (${te.numeric_grade})` : ""}
 Essay (first 500 chars): ${te.essay_text.slice(0, 500)}...

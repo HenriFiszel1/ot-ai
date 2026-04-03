@@ -85,7 +85,7 @@ export async function POST(request: Request) {
     }
 
     const commentsRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${docId}/comments?fields=comments(content,quotedFileContent,resolved)&includeDeleted=false`,
+      `https://www.googleapis.com/drive/v3/files/${docId}/comments?fields=comments(content,quotedFileContent,resolved,replies)&includeDeleted=false`,
       { headers: { Authorization: `Bearer ${provider_token}` } }
     );
 
@@ -95,9 +95,6 @@ export async function POST(request: Request) {
       const commentsData = await commentsRes.json();
       if (commentsData.comments) {
         comments = commentsData.comments
-          .filter(
-            (c: { resolved?: boolean }) => !c.resolved
-          )
           .map(
             (c: {
               content?: string;
@@ -109,6 +106,8 @@ export async function POST(request: Request) {
           )
           .filter((c: { comment: string }) => c.comment.trim());
       }
+    } else {
+      console.error("Failed to fetch comments:", commentsRes.status, await commentsRes.text().catch(() => ""));
     }
 
     return NextResponse.json({
