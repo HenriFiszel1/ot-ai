@@ -100,11 +100,13 @@ export default function AnalyzePage() {
     }
   }
 
-  const filteredSchools = schools.filter(
-    (s) =>
-      s.name.toLowerCase().includes(schoolSearch.toLowerCase()) ||
-      (s.location || "").toLowerCase().includes(schoolSearch.toLowerCase())
-  );
+  const filteredSchools = schoolSearch.trim()
+    ? schools.filter(
+        (s) =>
+          s.name.toLowerCase().includes(schoolSearch.toLowerCase()) ||
+          (s.location || "").toLowerCase().includes(schoolSearch.toLowerCase())
+      )
+    : [];
 
   const wordCount = essayText.trim().split(/\s+/).filter(Boolean).length;
   const canSubmit = essayText.trim().length > 50 && prompt.trim().length > 5;
@@ -223,7 +225,7 @@ export default function AnalyzePage() {
                   return (
                     <button
                       key={school.id}
-                      onClick={() => setSelectedSchool(school)}
+                      onClick={() => { setSelectedSchool(school); setSchoolSearch(""); }}
                       className="w-full text-left p-4 rounded-xl transition-all duration-200 flex items-center justify-between"
                       style={{
                         background: isSelected ? 'rgba(99,152,255,0.07)' : 'transparent',
