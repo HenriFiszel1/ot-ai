@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       console.error("Vector search failed, falling back to recency:", embedErr);
       const { data: fallback } = await supabase
         .from("training_essays")
-        .select("essay_text, prompt, letter_grade, numeric_grade, teacher_end_comment, inline_comments")
+        .select("id, essay_text, prompt, letter_grade, numeric_grade, teacher_end_comment, inline_comments")
         .eq("teacher_id", teacher_id)
         .order("created_at", { ascending: false })
         .limit(10);
