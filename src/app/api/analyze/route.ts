@@ -65,7 +65,7 @@ export async function POST(request: Request) {
         .eq("teacher_id", teacher_id)
         .order("created_at", { ascending: false })
         .limit(10);
-      trainingEssays = fallback || [];
+      trainingEssays = (fallback as typeof trainingEssays) || [];
     }
 
     if (!teacher || !school) {
