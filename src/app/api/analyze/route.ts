@@ -49,7 +49,8 @@ export async function POST(request: Request) {
 
     // ─── Vector similarity search for training essays ─
     // Falls back to recency if no embeddings exist yet
-    let trainingEssays: Awaited<ReturnType<typeof findSimilarTrainingEssays>> = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let trainingEssays: any[] = [];
     try {
       trainingEssays = await findSimilarTrainingEssays(
         essay_text,
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
         .eq("teacher_id", teacher_id)
         .order("created_at", { ascending: false })
         .limit(10);
-      trainingEssays = (fallback as typeof trainingEssays) || [];
+      trainingEssays = fallback || [];
     }
 
     if (!teacher || !school) {
