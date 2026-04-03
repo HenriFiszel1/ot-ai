@@ -356,8 +356,9 @@ function ContributeContent() {
               <div className="space-y-2">
                 {filteredSchools.map((s) => (
                   <button
+                    type="button"
                     key={s.id}
-                    onClick={() => setSelectedSchool(s)}
+                    onClick={() => { setSelectedSchool(s); setSchoolSearch(""); }}
                     className="w-full text-left p-4 rounded-xl transition-all duration-200 flex items-center justify-between"
                     style={{
                       background: selectedSchool?.id === s.id ? 'rgba(99,152,255,0.07)' : 'transparent',
@@ -450,6 +451,7 @@ function ContributeContent() {
                 <div className="space-y-2">
                   {teachers.map((t) => (
                     <button
+                      type="button"
                       key={t.id}
                       onClick={() => setSelectedTeacher(t)}
                       className="w-full text-left p-4 rounded-xl transition-all duration-200 flex items-center justify-between"
