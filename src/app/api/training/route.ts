@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateEmbedding, buildEssayEmbedText } from "@/lib/embeddings";
+import { buildTeacherPersona } from "@/lib/teacher-persona";
 
 export async function POST(request: Request) {
   try {
@@ -24,6 +25,9 @@ export async function POST(request: Request) {
       numeric_grade,
       teacher_end_comment,
       inline_comments,
+      rubric,
+      rubric_scores,
+      assignment_type,
     } = body;
 
     if (!school_id || !teacher_id || !essay_text) {
@@ -53,6 +57,9 @@ export async function POST(request: Request) {
         numeric_grade: numeric_grade || null,
         teacher_end_comment: teacher_end_comment || null,
         inline_comments: inline_comments || [],
+        rubric: rubric || null,
+        rubric_scores: rubric_scores || null,
+        assignment_type: assignment_type || null,
       })
       .select()
       .single();
@@ -93,6 +100,12 @@ export async function POST(request: Request) {
       });
     }
 
+    // Mark the teacher's persona as stale — new data means the profile needs recomputing
+    await supabase
+      .from("teacher_profiles")
+      .update({ is_stale: true })
+      .eq("teacher_id", teacher_id);
+
     // Generate and store embedding (non-fatal — essay is saved regardless)
     try {
       const embedText = buildEssayEmbedText(prompt || "", essay_text);
@@ -104,6 +117,11 @@ export async function POST(request: Request) {
     } catch (embedErr) {
       console.error("Embedding generation failed (non-fatal):", embedErr);
     }
+
+    // Rebuild the teacher persona in the background (non-fatal)
+    buildTeacherPersona(teacher_id).catch((err) =>
+      console.error("Persona rebuild failed (non-fatal):", err)
+    );
 
     return NextResponse.json({ id: trainingEssay.id, success: true });
   } catch (err) {

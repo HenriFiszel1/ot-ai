@@ -41,6 +41,19 @@ export function buildEssayEmbedText(prompt: string, essayText: string): string {
   return `Assignment: ${prompt}\n\nEssay: ${essayText}`;
 }
 
+export interface TrainingEssayMatch {
+  id: string;
+  essay_text: string;
+  prompt: string;
+  letter_grade: string | null;
+  numeric_grade: number | null;
+  teacher_end_comment: string | null;
+  inline_comments: unknown[];
+  rubric: string | null;
+  rubric_scores: Record<string, unknown> | null;
+  similarity?: number;
+}
+
 /**
  * Finds training essays most similar to the given essay using vector search.
  * Falls back to most-recent 10 if no embeddings exist for this teacher yet.
@@ -50,16 +63,7 @@ export async function findSimilarTrainingEssays(
   prompt: string,
   teacherId: string,
   limit = 10
-): Promise<{
-  id: string;
-  essay_text: string;
-  prompt: string;
-  letter_grade: string | null;
-  numeric_grade: number | null;
-  teacher_end_comment: string | null;
-  inline_comments: unknown[];
-  similarity?: number;
-}[]> {
+): Promise<TrainingEssayMatch[]> {
   const supabase = await createClient();
 
   // Generate embedding for the query essay
@@ -79,7 +83,7 @@ export async function findSimilarTrainingEssays(
   }
 
   if (data && data.length > 0) {
-    return data;
+    return data as TrainingEssayMatch[];
   }
 
   // Fallback: no embeddings exist yet — return most recent essays
@@ -89,11 +93,11 @@ export async function findSimilarTrainingEssays(
   const { data: fallback } = await supabase
     .from("training_essays")
     .select(
-      "id, essay_text, prompt, letter_grade, numeric_grade, teacher_end_comment, inline_comments"
+      "id, essay_text, prompt, letter_grade, numeric_grade, teacher_end_comment, inline_comments, rubric, rubric_scores"
     )
     .eq("teacher_id", teacherId)
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  return fallback || [];
+  return (fallback as TrainingEssayMatch[]) || [];
 }
