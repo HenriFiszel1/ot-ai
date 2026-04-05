@@ -376,17 +376,18 @@ function ContributeContent() {
             )}
 
             {schoolSearch.trim() && filteredSchools.length === 0 && (
-              <div className="rounded-xl p-5 text-center space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="rounded-xl p-5 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>No school found matching &quot;{schoolSearch}&quot;</p>
-                <button
-                  onClick={() => { setAddingNewSchool(true); setNewSchoolName(schoolSearch); setError(null); }}
-                  className="text-sm font-medium inline-flex items-center gap-1 transition-colors duration-200"
-                  style={{ color: '#6398FF' }}
-                >
-                  <Plus className="w-4 h-4" /> Add &quot;{schoolSearch}&quot; as a new school
-                </button>
               </div>
             )}
+
+            <button
+              onClick={() => { setAddingNewSchool(true); setNewSchoolName(schoolSearch); setError(null); }}
+              className="text-sm font-medium inline-flex items-center gap-1 transition-colors duration-200"
+              style={{ color: '#6398FF' }}
+            >
+              <Plus className="w-4 h-4" /> Add a new school
+            </button>
 
             {selectedSchool && (
               <button
