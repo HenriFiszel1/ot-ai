@@ -36,7 +36,7 @@ function ContributeContent() {
   const [newTeacherGradingStyle, setNewTeacherGradingStyle] = useState("");
   const [savingTeacher, setSavingTeacher] = useState(false);
 
-  const [importMode, setImportMode] = useState<"google" | "manual">("manual");
+  const [importMode, setImportMode] = useState<"google" | "manual">("google");
   const [importing, setImporting] = useState(false);
   const [imported, setImported] = useState(false);
   const [googleConnected, setGoogleConnected] = useState(false);
@@ -575,18 +575,18 @@ function ContributeContent() {
                 {/* Import mode toggle */}
                 <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   <button
-                    onClick={() => { setImportMode("manual"); setError(null); }}
-                    className="flex-1 h-9 rounded-lg text-xs font-medium transition-all duration-200"
-                    style={{ background: importMode === "manual" ? '#F2F2FF' : 'transparent', color: importMode === "manual" ? '#141414' : 'rgba(255,255,255,0.5)' }}
-                  >
-                    Enter Manually
-                  </button>
-                  <button
                     onClick={() => { setImportMode("google"); setError(null); }}
                     className="flex-1 h-9 rounded-lg text-xs font-medium transition-all duration-200"
                     style={{ background: importMode === "google" ? '#F2F2FF' : 'transparent', color: importMode === "google" ? '#141414' : 'rgba(255,255,255,0.5)' }}
                   >
                     Import from Google Drive
+                  </button>
+                  <button
+                    onClick={() => { setImportMode("manual"); setError(null); }}
+                    className="flex-1 h-9 rounded-lg text-xs font-medium transition-all duration-200"
+                    style={{ background: importMode === "manual" ? '#F2F2FF' : 'transparent', color: importMode === "manual" ? '#141414' : 'rgba(255,255,255,0.5)' }}
+                  >
+                    Enter Manually
                   </button>
                 </div>
 
