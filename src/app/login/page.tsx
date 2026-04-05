@@ -48,7 +48,7 @@ function LoginForm() {
       options: {
         scopes:
           "https://www.googleapis.com/auth/documents.readonly https://www.googleapis.com/auth/drive.readonly",
-        redirectTo: `${window.location.origin}/api/auth/callback?redirect=${encodeURIComponent(redirect)}`,
+        redirectTo: `${window.location.origin}/api/auth/callback`,
       },
     });
 
