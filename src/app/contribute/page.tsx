@@ -383,10 +383,10 @@ function ContributeContent() {
 
             <button
               onClick={() => { setAddingNewSchool(true); setNewSchoolName(schoolSearch); setError(null); }}
-              className="text-sm font-medium inline-flex items-center gap-1 transition-colors duration-200"
-              style={{ color: '#6398FF' }}
+              className="w-full h-11 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all duration-200"
+              style={{ background: 'rgba(99,152,255,0.08)', border: '1px solid rgba(99,152,255,0.2)', color: '#6398FF' }}
             >
-              <Plus className="w-4 h-4" /> Add a new school
+              <Plus className="w-4 h-4" /> Add New School
             </button>
 
             {selectedSchool && (
@@ -476,10 +476,10 @@ function ContributeContent() {
 
             <button
               onClick={() => { setAddingNewTeacher(true); setError(null); }}
-              className="text-sm font-medium inline-flex items-center gap-1 transition-colors duration-200"
-              style={{ color: '#6398FF' }}
+              className="w-full h-11 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all duration-200"
+              style={{ background: 'rgba(99,152,255,0.08)', border: '1px solid rgba(99,152,255,0.2)', color: '#6398FF' }}
             >
-              <Plus className="w-4 h-4" /> Add a new teacher
+              <Plus className="w-4 h-4" /> Add New Teacher
             </button>
 
             {selectedTeacher && (
