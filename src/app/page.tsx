@@ -18,6 +18,7 @@ import {
   Star,
 } from "lucide-react";
 import { LogoCloud } from "@/components/ui/logo-cloud";
+import { AuthRedirect } from "@/components/AuthRedirect";
 
 const trustedLogos = [
   { src: "https://storage.efferd.com/logo/openai-wordmark.svg", alt: "OpenAI" },
@@ -31,6 +32,7 @@ const trustedLogos = [
 export default function LandingPage() {
   return (
     <div className="min-h-screen" style={{ background: '#141414' }}>
+      <AuthRedirect />
       {/* Nav */}
       <header style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
