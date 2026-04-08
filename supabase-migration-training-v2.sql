@@ -39,7 +39,7 @@ RETURNS TABLE (
   rubric_scores        JSONB,
   similarity           FLOAT
 )
-LANGUAGE sql STABLE
+LANGUAGE sql STABLE SECURITY DEFINER
 AS $$
   SELECT
     te.id,

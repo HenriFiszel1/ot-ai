@@ -378,9 +378,9 @@ CREATE POLICY "Authenticated users can insert training essays"
   ON training_essays FOR INSERT
   WITH CHECK (auth.uid() IS NOT NULL);
 
--- Users can view their own training essays
-CREATE POLICY "Users can view own training essays"
+-- All authenticated users can read training essays
+-- (needed by the AI analysis pipeline to find similar training examples;
+--  restricting to submitter-only would break findSimilarTrainingEssays)
+CREATE POLICY "Authenticated users can read training essays"
   ON training_essays FOR SELECT
-  USING (submitted_by IN (
-    SELECT id FROM students WHERE auth_user_id = auth.uid()
-  ));
+  USING (auth.uid() IS NOT NULL);
