@@ -7,18 +7,33 @@ export default async function AdminTrainingPage() {
   let rows: Record<string, unknown>[] = [];
   let fetchError = false;
   try {
-    const { data: training } = await supabase
-      .from("training_essays")
-      .select(
-        "id, prompt, letter_grade, numeric_grade, created_at, teachers(name), schools(name), submitted_by(email)"
-      )
-      .order("created_at", { ascending: false });
+    const [trainingRes, teachersRes, schoolsRes, studentsRes] = await Promise.all([
+      supabase
+        .from("training_essays")
+        .select("id, prompt, letter_grade, numeric_grade, created_at, teacher_id, school_id, submitted_by")
+        .order("created_at", { ascending: false }),
+      supabase.from("teachers").select("id, name"),
+      supabase.from("schools").select("id, name"),
+      supabase.from("students").select("id, email"),
+    ]);
 
-    rows = (training ?? []).map((t: Record<string, unknown>) => ({
+    if (trainingRes.error) throw trainingRes.error;
+
+    const teacherMap = new Map(
+      (teachersRes.data ?? []).map((t: Record<string, unknown>) => [t.id, t.name])
+    );
+    const schoolMap = new Map(
+      (schoolsRes.data ?? []).map((s: Record<string, unknown>) => [s.id, s.name])
+    );
+    const studentMap = new Map(
+      (studentsRes.data ?? []).map((s: Record<string, unknown>) => [s.id, s.email])
+    );
+
+    rows = (trainingRes.data ?? []).map((t: Record<string, unknown>) => ({
       ...t,
-      teacher_name: (t.teachers as { name: string } | null)?.name ?? "—",
-      school_name: (t.schools as { name: string } | null)?.name ?? "—",
-      submitted_by_email: (t.submitted_by as { email: string } | null)?.email ?? "—",
+      teacher_name: (teacherMap.get(t.teacher_id) as string) ?? "—",
+      school_name: (schoolMap.get(t.school_id) as string) ?? "—",
+      submitted_by_email: (studentMap.get(t.submitted_by) as string) ?? "—",
     }));
   } catch (e) {
     console.error("Failed to load training essays:", e);

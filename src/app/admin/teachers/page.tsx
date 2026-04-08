@@ -8,22 +8,26 @@ export default async function AdminTeachersPage() {
   let schoolOptions: { value: string; label: string }[] = [];
   let fetchError = false;
   try {
-    const [{ data: teachers }, { data: schools }] = await Promise.all([
-      supabase
-        .from("teachers")
-        .select("*, schools(name)")
-        .order("created_at", { ascending: false }),
+    const [teachersRes, schoolsRes] = await Promise.all([
+      supabase.from("teachers").select("*").order("created_at", { ascending: false }),
       supabase.from("schools").select("id, name").order("name"),
     ]);
 
-    schoolOptions = (schools ?? []).map((s: { id: string; name: string }) => ({
+    if (teachersRes.error) throw teachersRes.error;
+    if (schoolsRes.error) throw schoolsRes.error;
+
+    const schoolMap = new Map(
+      (schoolsRes.data ?? []).map((s: Record<string, unknown>) => [s.id, s.name])
+    );
+
+    schoolOptions = (schoolsRes.data ?? []).map((s: { id: string; name: string }) => ({
       value: s.id,
       label: s.name,
     }));
 
-    rows = (teachers ?? []).map((t: Record<string, unknown>) => ({
+    rows = (teachersRes.data ?? []).map((t: Record<string, unknown>) => ({
       ...t,
-      school_name: (t.schools as { name: string } | null)?.name ?? "—",
+      school_name: (schoolMap.get(t.school_id) as string) ?? "—",
     }));
   } catch (e) {
     console.error("Failed to load teachers:", e);
