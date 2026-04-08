@@ -9,7 +9,9 @@ import {
   LogOut,
   School,
   Sparkles,
+  Shield,
 } from "lucide-react";
+import { isAdmin } from "@/lib/admin";
 import { AnimateIn, StaggerChildren, StaggerItem } from "@/components/ui/motion";
 
 export default async function DashboardPage() {
@@ -64,6 +66,15 @@ export default async function DashboardPage() {
             />
           </Link>
           <div className="flex items-center gap-5">
+            {isAdmin(user) && (
+              <Link
+                href="/admin"
+                className="text-xs font-medium flex items-center gap-1.5 transition-opacity hover:opacity-80"
+                style={{ color: '#6398FF' }}
+              >
+                <Shield className="w-3.5 h-3.5" /> Admin
+              </Link>
+            )}
             <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>{user.email}</span>
             <form action="/api/auth/signout" method="POST">
               <button
