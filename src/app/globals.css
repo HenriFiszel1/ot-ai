@@ -26,7 +26,7 @@
   --card-border:     var(--border);
 
   /* Typography */
-  --font-display:    var(--font-geist-sans), sans-serif;
+  --font-display:    var(--font-serif), 'Georgia', serif;
   --font-sans:       var(--font-geist-sans), sans-serif;
   --font-mono:       var(--font-geist-mono), monospace;
 
@@ -67,24 +67,24 @@ body {
 
 /* ─── Typography Scale ───────────────────────────────────────────────────── */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-geist-sans), sans-serif;
-  font-weight: 700;
+  font-family: var(--font-serif), 'Georgia', serif;
+  font-weight: 600;
   line-height: 1.1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   color: #F2F2FF;
 }
 
-h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); letter-spacing: -0.03em; }
-h2 { font-size: clamp(1.75rem, 4vw, 3rem); letter-spacing: -0.025em; }
+h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); letter-spacing: -0.02em; }
+h2 { font-size: clamp(1.75rem, 4vw, 3rem); letter-spacing: -0.015em; }
 h3 { font-size: clamp(1.25rem, 2.5vw, 1.75rem); }
 h4 { font-size: 1.125rem; font-weight: 600; }
 
 p  { color: var(--muted-blue); line-height: 1.7; }
 
 .display {
-  font-family: var(--font-geist-sans), sans-serif;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-family: var(--font-serif), 'Georgia', serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 /* Gradient heading utility */
