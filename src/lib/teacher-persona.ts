@@ -1,5 +1,29 @@
 import { createServiceClient } from "@/lib/supabase/service";
 
+// ─── Comment clustering ────────────────────────────────────
+// Maps each comment category to keyword signals so we can classify
+// comments that lack an explicit `category` field.
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  thesis:    ["thesis", "argument", "claim", "position", "main point", "central idea", "assert"],
+  evidence:  ["evidence", "example", "quote", "source", "support", "cite", "data", "reference"],
+  analysis:  ["analysis", "analyze", "explain", "elaborate", "develop", "insight", "connect", "interpret"],
+  structure: ["structure", "organization", "paragraph", "transition", "flow", "introduction", "conclusion", "body", "outline"],
+  style:     ["style", "word choice", "diction", "tone", "voice", "language", "sentence", "vary", "clarity", "concise"],
+};
+
+const VALID_CATEGORIES = new Set(Object.keys(CATEGORY_KEYWORDS));
+
+const SEVERITY_SCORE: Record<string, number> = { praise: 1, suggestion: 2, concern: 3 };
+
+function classifyComment(text: string, explicitCategory?: string): string | null {
+  if (explicitCategory && VALID_CATEGORIES.has(explicitCategory)) return explicitCategory;
+  const lower = (text || "").toLowerCase();
+  for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (keywords.some((kw) => lower.includes(kw))) return cat;
+  }
+  return null;
+}
+
 /**
  * Computes a teacher's grading profile from all their training essays
  * and upserts the result into teacher_profiles.
@@ -80,15 +104,43 @@ export async function buildTeacherPersona(teacherId: string): Promise<void> {
   const endComments = essays
     .map((e) => e.teacher_end_comment as string | null)
     .filter(Boolean) as string[];
-  const commentPatterns =
-    endComments.length > 0
+
+  // ─── Comment clustering ────────────────────────────────────
+  // Walk every inline comment across all training essays,
+  // bucket by category, and track frequency + avg severity.
+  const clusterTotals: Record<string, { count: number; severitySum: number }> = {};
+
+  for (const essay of essays) {
+    const ic = essay.inline_comments;
+    if (!Array.isArray(ic)) continue;
+    for (const c of ic as Array<{ comment?: string; category?: string; severity?: string }>) {
+      const cat = classifyComment(c.comment || "", c.category);
+      if (!cat) continue;
+      if (!clusterTotals[cat]) clusterTotals[cat] = { count: 0, severitySum: 0 };
+      clusterTotals[cat].count++;
+      clusterTotals[cat].severitySum += SEVERITY_SCORE[c.severity ?? ""] ?? 2;
+    }
+  }
+
+  const clusters: Record<string, { frequency: number; severity_avg: number }> = {};
+  for (const [cat, totals] of Object.entries(clusterTotals)) {
+    clusters[cat] = {
+      frequency: totals.count,
+      severity_avg: Math.round((totals.severitySum / totals.count) * 10) / 10,
+    };
+  }
+
+  const commentPatterns = {
+    ...(endComments.length > 0
       ? {
           sample_count: endComments.length,
           avg_length: Math.round(
             endComments.reduce((s, c) => s + c.length, 0) / endComments.length
           ),
         }
-      : {};
+      : {}),
+    ...(Object.keys(clusters).length > 0 ? { clusters } : {}),
+  };
 
   // ─── Rubric score weights (if available) ──────────────────
   // Average per-criterion scores across essays that provided rubric_scores

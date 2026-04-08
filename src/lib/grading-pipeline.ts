@@ -17,6 +17,8 @@ export interface TeacherProfileContext {
   common_phrases: string[];
   avg_grade: number | null;
   most_common_grade: string | null;
+  comment_patterns?: Record<string, unknown>;
+  harshness_index?: number | null;
 }
 
 export interface GradingPipelineInput {
@@ -48,6 +50,24 @@ export function buildSystemPrompt(input: GradingPipelineInput): string {
     trainingEssays,
   } = input;
 
+  const clusters = profile?.comment_patterns &&
+    typeof profile.comment_patterns === "object" &&
+    (profile.comment_patterns as Record<string, unknown>).clusters
+      ? (profile.comment_patterns as { clusters: Record<string, { frequency: number; severity_avg: number }> }).clusters
+      : null;
+
+  const clusterContext = clusters && Object.keys(clusters).length > 0
+    ? `\nComment Focus Areas (derived from ${Object.values(clusters).reduce((s, c) => s + c.frequency, 0)} past comments):\n` +
+      Object.entries(clusters)
+        .sort((a, b) => b[1].frequency - a[1].frequency)
+        .map(([cat, d]) => `  - ${cat}: ${d.frequency} comments, avg severity ${d.severity_avg <= 1.5 ? "mostly praise" : d.severity_avg >= 2.5 ? "mostly critical" : "mixed — weight this area in your feedback"}`)
+        .join("\n")
+    : "";
+
+  const harshnessContext = profile?.harshness_index && profile.harshness_index !== 0
+    ? `\nCalibration note: Harshness index ${profile.harshness_index > 0 ? "+" : ""}${(profile.harshness_index as number).toFixed(3)} — past predictions have run ${profile.harshness_index > 0 ? "high; shade grades slightly lower than your first instinct" : "low; shade grades slightly higher than your first instinct"}.`
+    : "";
+
   const teacherContext = profile
     ? `
 Teacher Profile Data:
@@ -56,7 +76,7 @@ Teacher Profile Data:
 - Tone: ${profile.tone_keywords?.join(", ") || "professional"}
 - Common phrases: ${profile.common_phrases?.join("; ") || "none recorded yet"}
 - Average grade given: ${profile.avg_grade ?? "unknown"}
-- Most common grade: ${profile.most_common_grade ?? "unknown"}
+- Most common grade: ${profile.most_common_grade ?? "unknown"}${clusterContext}${harshnessContext}
 `
     : "";
 
@@ -158,20 +178,148 @@ Generate 8-12 inline comments covering different parts of the essay. Mix praise,
 }
 
 /**
+ * Analyzes the spread between highest- and lowest-graded training essays to
+ * identify what concretely separates them. Returns a 2-3 sentence insight
+ * string, or "" if there is not enough data.
+ *
+ * Called between pass 1 (context retrieval) and pass 3 (full grading) so its
+ * findings can be woven into the system prompt before Claude grades.
+ */
+export interface GapAnalysisResult {
+  whatWouldImproveGrade: string[];
+  keyDifferences: string[];
+}
+
+export async function gapAnalysis(
+  trainingEssays: TrainingEssayMatch[]
+): Promise<GapAnalysisResult | null> {
+  const graded = trainingEssays
+    .filter((e) => e.numeric_grade != null)
+    .sort((a, b) => (b.numeric_grade ?? 0) - (a.numeric_grade ?? 0));
+
+  if (graded.length < 2) return null;
+
+  const highest = graded[0];
+  const lowest = graded[graded.length - 1];
+  const gap = (highest.numeric_grade ?? 0) - (lowest.numeric_grade ?? 0);
+  if (gap < 5) return null;
+
+  const prompt = `Compare a high-grade and low-grade essay from the same teacher. Identify what separates them.
+
+HIGH-GRADE ESSAY (${highest.letter_grade ?? highest.numeric_grade}/100):
+Prompt: ${highest.prompt}
+Excerpt: ${highest.essay_text.slice(0, 400)}
+${highest.teacher_end_comment ? `Teacher comment: ${highest.teacher_end_comment.slice(0, 200)}` : ""}
+
+LOW-GRADE ESSAY (${lowest.letter_grade ?? lowest.numeric_grade}/100):
+Prompt: ${lowest.prompt}
+Excerpt: ${lowest.essay_text.slice(0, 400)}
+${lowest.teacher_end_comment ? `Teacher comment: ${lowest.teacher_end_comment.slice(0, 200)}` : ""}
+
+Return ONLY valid JSON (no markdown, no code fences):
+{
+  "whatWouldImproveGrade": ["specific actionable improvement 1", "improvement 2", "improvement 3"],
+  "keyDifferences": ["what makes the high essay stronger 1", "key difference 2"]
+}`;
+
+  const message = await anthropic.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 400,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const block = message.content.find((b) => b.type === "text");
+  if (!block || block.type !== "text") return null;
+
+  let raw = block.text.trim();
+  if (raw.startsWith("```")) raw = raw.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+
+  try {
+    return JSON.parse(raw) as GapAnalysisResult;
+  } catch {
+    return null;
+  }
+}
+
+export interface FactualError {
+  quoted_text: string;
+  issue: string;
+  correction: string;
+}
+
+/**
+ * Runs a fact-checking pass on the essay.
+ * Returns an array of factual errors found (empty if none).
+ */
+export async function factCheck(
+  essayText: string,
+  assignmentPrompt: string
+): Promise<{ factualErrors: FactualError[] }> {
+  const message = await anthropic.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 1024,
+    system:
+      "You are a fact-checker. Read this essay carefully. Identify any factual errors, incorrect claims, wrong dates, misattributed quotes, incorrect scientific information, wrong formulas, or factual inaccuracies. For each error found, provide: the exact quoted text that is wrong, what is incorrect about it, and what the correct information is. If everything is factually accurate, return an empty array. Only flag things that are genuinely factually wrong — do not flag opinions, arguments, or stylistic choices. Respond ONLY with valid JSON, no markdown, no code fences.",
+    messages: [
+      {
+        role: "user",
+        content: `ASSIGNMENT PROMPT: ${assignmentPrompt}\n\nESSAY:\n${essayText}\n\nReturn ONLY this JSON structure:\n{\n  "factualErrors": [\n    {\n      "quoted_text": "exact text from essay that is wrong",\n      "issue": "what is incorrect about it",\n      "correction": "the correct information"\n    }\n  ]\n}`,
+      },
+    ],
+  });
+
+  const textBlock = message.content.find((b) => b.type === "text");
+  if (!textBlock || textBlock.type !== "text") {
+    return { factualErrors: [] };
+  }
+
+  let raw = textBlock.text.trim();
+  if (raw.startsWith("```")) {
+    raw = raw.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    return { factualErrors: Array.isArray(parsed.factualErrors) ? parsed.factualErrors : [] };
+  } catch {
+    return { factualErrors: [] };
+  }
+}
+
+/**
  * Runs the full grading pipeline: builds prompts, calls Claude, parses result.
  * Throws on Claude API errors or unparseable responses.
  */
 export async function runGradingPipeline(
   input: GradingPipelineInput
 ): Promise<AnalysisResult> {
+  // Pass 1: retrieve training essay context (done by caller via findSimilarTrainingEssays)
+  // Pass 2: gap analysis — what separates high vs low grades for this teacher
+  let gapResult: GapAnalysisResult | null = null;
+  if (input.trainingEssays.length >= 2) {
+    try {
+      gapResult = await gapAnalysis(input.trainingEssays);
+    } catch {
+      // non-fatal — proceed without gap insight
+    }
+  }
+
+  // Pass 3: full grading — build prompts enriched with gap analysis, then grade
   const systemPrompt = buildSystemPrompt(input);
+  const gapInsight =
+    gapResult && (gapResult.whatWouldImproveGrade.length > 0 || gapResult.keyDifferences.length > 0)
+      ? `Key differences from higher-scored essays: ${gapResult.keyDifferences.join("; ")}. To push this essay's grade up: ${gapResult.whatWouldImproveGrade.join("; ")}.`
+      : "";
+  const enrichedSystemPrompt = gapInsight
+    ? `${systemPrompt}\n\n=== GAP ANALYSIS: WHAT SEPARATES HIGH vs LOW GRADES ===\n${gapInsight}\nWeave these improvement suggestions naturally into next_steps and end_comment as "to improve your grade, focus on..." guidance.`
+    : systemPrompt;
   const userPrompt = buildUserPrompt(input);
 
   const message = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
     max_tokens: 4096,
     messages: [{ role: "user", content: userPrompt }],
-    system: systemPrompt,
+    system: enrichedSystemPrompt,
   });
 
   const textBlock = message.content.find((b) => b.type === "text");
@@ -185,5 +333,6 @@ export async function runGradingPipeline(
   }
 
   const result: AnalysisResult = JSON.parse(raw);
+  if (gapResult) result.gap_analysis = gapResult;
   return result;
 }

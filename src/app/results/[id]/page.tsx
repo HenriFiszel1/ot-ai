@@ -15,6 +15,7 @@ import {
   PenLine,
 } from "lucide-react";
 import { AnimateIn } from "@/components/ui/motion";
+import { ReportActualGrade } from "./ReportActualGrade";
 
 export default async function ResultsPage({
   params,
@@ -353,6 +354,7 @@ export default async function ResultsPage({
               >
                 Back to Dashboard
               </Link>
+              {grade && <ReportActualGrade predictionId={grade.id} />}
             </div>
           </AnimateIn>
         </div>
