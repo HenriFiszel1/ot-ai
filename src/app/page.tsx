@@ -12,10 +12,11 @@ import {
   Zap,
   Sparkles,
   CheckCircle,
-  Star,
+  FileText,
 } from "lucide-react";
 import { LogoCloud } from "@/components/ui/logo-cloud";
 import { AuthRedirect } from "@/components/AuthRedirect";
+import { createClient } from "@/lib/supabase/server";
 import {
   AnimateIn,
   StaggerChildren,
@@ -33,7 +34,19 @@ const trustedLogos = [
   { src: "https://storage.efferd.com/logo/nvidia-wordmark.svg", alt: "Nvidia" },
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const supabase = await createClient();
+
+  const [schoolsRes, teachersRes, essaysRes] = await Promise.all([
+    supabase.from("schools").select("id", { count: "exact", head: true }),
+    supabase.from("teachers").select("id", { count: "exact", head: true }),
+    supabase.from("essays").select("id", { count: "exact", head: true }),
+  ]);
+
+  const schoolCount = schoolsRes.count ?? 0;
+  const teacherCount = teachersRes.count ?? 0;
+  const essayCount = essaysRes.count ?? 0;
+
   return (
     <div className="min-h-screen" style={{ background: '#141414' }}>
       <AuthRedirect />
@@ -130,7 +143,7 @@ export default function LandingPage() {
                 <Clock className="w-4 h-4" style={{ color: '#fbbf24' }} /> Results in ~30s
               </span>
               <span className="flex items-center gap-2">
-                <School className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.5)' }} /> 50+ schools
+                <School className="w-4 h-4" style={{ color: 'rgba(255,255,255,0.5)' }} /> {schoolCount} {schoolCount === 1 ? "school" : "schools"}
               </span>
             </div>
           </StaggerItem>
@@ -382,31 +395,25 @@ export default function LandingPage() {
       {/* Stats */}
       <section className="px-6 py-16" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         <AnimateIn className="max-w-3xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+          <div className="grid grid-cols-3 gap-8 text-center">
             <div>
               <div className="text-3xl sm:text-4xl font-bold tracking-tight" style={{ color: '#F2F2FF' }}>
-                <CountUp end={50} suffix="+" />
+                <CountUp end={schoolCount} />
               </div>
               <div className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Schools</div>
             </div>
             <div>
               <div className="text-3xl sm:text-4xl font-bold tracking-tight" style={{ color: '#F2F2FF' }}>
-                <CountUp end={200} suffix="+" />
+                <CountUp end={teacherCount} />
               </div>
               <div className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Teacher Profiles</div>
             </div>
             <div>
-              <div className="text-3xl sm:text-4xl font-bold tracking-tight" style={{ color: '#F2F2FF' }}>
-                <CountUp end={30} prefix="~" suffix="s" />
-              </div>
-              <div className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Avg. Turnaround</div>
-            </div>
-            <div>
               <div className="text-3xl sm:text-4xl font-bold tracking-tight flex items-center justify-center gap-1" style={{ color: '#F2F2FF' }}>
-                <CountUp end={4.8} decimals={1} />
-                <Star className="w-5 h-5 fill-current" />
+                <CountUp end={essayCount} />
+                <FileText className="w-5 h-5" />
               </div>
-              <div className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Student Rating</div>
+              <div className="mt-1 text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Essays Analyzed</div>
             </div>
           </div>
         </AnimateIn>
