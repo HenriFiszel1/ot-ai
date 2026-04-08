@@ -37,6 +37,20 @@ export async function POST(request: Request) {
       );
     }
 
+    // Verify the teacher belongs to the specified school before accepting training data
+    const { data: teacher } = await supabase
+      .from("teachers")
+      .select("school_id")
+      .eq("id", teacher_id)
+      .single();
+
+    if (!teacher || teacher.school_id !== school_id) {
+      return NextResponse.json(
+        { error: "Teacher does not belong to the specified school" },
+        { status: 403 }
+      );
+    }
+
     // Get the student record
     const { data: student } = await supabase
       .from("students")

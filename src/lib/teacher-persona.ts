@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 
 /**
  * Computes a teacher's grading profile from all their training essays
@@ -6,9 +6,12 @@ import { createClient } from "@/lib/supabase/server";
  *
  * Called automatically (non-blocking) whenever a new training essay is uploaded.
  * Sets is_stale = false after a successful rebuild.
+ *
+ * Uses the service-role client to bypass RLS — training essays are aggregated
+ * across all submitters, not just the requesting user.
  */
 export async function buildTeacherPersona(teacherId: string): Promise<void> {
-  const supabase = await createClient();
+  const supabase = createServiceClient();
 
   // Fetch all training essays for this teacher (cap at 200 for performance)
   const { data: essays, error } = await supabase

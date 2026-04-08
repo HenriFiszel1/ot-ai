@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 
 const VOYAGE_API_URL = "https://api.voyageai.com/v1/embeddings";
 const VOYAGE_MODEL = "voyage-3-lite";
@@ -64,7 +64,9 @@ export async function findSimilarTrainingEssays(
   teacherId: string,
   limit = 10
 ): Promise<TrainingEssayMatch[]> {
-  const supabase = await createClient();
+  // Service client bypasses RLS so we see all training essays for this teacher,
+  // not just those submitted by the requesting user.
+  const supabase = createServiceClient();
 
   // Generate embedding for the query essay
   const embedText = buildEssayEmbedText(prompt, essayText);

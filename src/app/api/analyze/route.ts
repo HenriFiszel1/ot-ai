@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import type { AnalyzeRequest } from "@/lib/types";
 import { findSimilarTrainingEssays } from "@/lib/embeddings";
 import { runGradingPipeline } from "@/lib/grading-pipeline";
@@ -50,6 +51,14 @@ export async function POST(request: Request) {
       );
     }
 
+    // Verify the teacher belongs to the requested school
+    if (teacher.school_id !== school_id) {
+      return NextResponse.json(
+        { error: "Teacher does not belong to the specified school" },
+        { status: 403 }
+      );
+    }
+
     // ─── Vector similarity search for training essays ─
     // Returns essays with essay_text, comments, grades, rubric, rubric_scores.
     // Falls back to recency if no embeddings exist yet.
@@ -64,7 +73,9 @@ export async function POST(request: Request) {
       );
     } catch (embedErr) {
       console.error("Vector search failed, falling back to recency:", embedErr);
-      const { data: fallback } = await supabase
+      // Use service client so RLS doesn't restrict to only the requesting user's essays
+      const serviceSupabase = createServiceClient();
+      const { data: fallback } = await serviceSupabase
         .from("training_essays")
         .select(
           "id, essay_text, prompt, letter_grade, numeric_grade, teacher_end_comment, inline_comments, rubric, rubric_scores"
