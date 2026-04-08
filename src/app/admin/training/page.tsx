@@ -3,19 +3,27 @@ import AdminTable, { type Column } from "@/components/admin/AdminTable";
 
 export default async function AdminTrainingPage() {
   const supabase = createAdminClient();
-  const { data: training } = await supabase
-    .from("training_essays")
-    .select(
-      "id, prompt, letter_grade, numeric_grade, created_at, teachers(name), schools(name), students:submitted_by(email)"
-    )
-    .order("created_at", { ascending: false });
 
-  const rows = (training ?? []).map((t: Record<string, unknown>) => ({
-    ...t,
-    teacher_name: (t.teachers as { name: string } | null)?.name ?? "—",
-    school_name: (t.schools as { name: string } | null)?.name ?? "—",
-    submitted_by_email: (t.students as { email: string } | null)?.email ?? "—",
-  }));
+  let rows: Record<string, unknown>[] = [];
+  let fetchError = false;
+  try {
+    const { data: training } = await supabase
+      .from("training_essays")
+      .select(
+        "id, prompt, letter_grade, numeric_grade, created_at, teachers(name), schools(name), submitted_by(email)"
+      )
+      .order("created_at", { ascending: false });
+
+    rows = (training ?? []).map((t: Record<string, unknown>) => ({
+      ...t,
+      teacher_name: (t.teachers as { name: string } | null)?.name ?? "—",
+      school_name: (t.schools as { name: string } | null)?.name ?? "—",
+      submitted_by_email: (t.submitted_by as { email: string } | null)?.email ?? "—",
+    }));
+  } catch (e) {
+    console.error("Failed to load training essays:", e);
+    fetchError = true;
+  }
 
   const columns: Column[] = [
     {
@@ -54,9 +62,14 @@ export default async function AdminTrainingPage() {
       <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", marginBottom: 24 }}>
         {rows.length} total training essays
       </p>
+      {fetchError && (
+        <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 8, padding: "12px 16px", marginBottom: 16, color: "#f87171", fontSize: 14 }}>
+          Failed to load data. Check the console for details.
+        </div>
+      )}
       <AdminTable
         columns={columns}
-        data={rows as Record<string, unknown>[]}
+        data={rows}
         entityName="training essays"
         apiEndpoint="/api/admin/training"
         canEdit={false}

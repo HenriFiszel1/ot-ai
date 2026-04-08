@@ -27,10 +27,19 @@ const columns: Column[] = [
 
 export default async function AdminSchoolsPage() {
   const supabase = createAdminClient();
-  const { data: schools } = await supabase
-    .from("schools")
-    .select("*")
-    .order("created_at", { ascending: false });
+
+  let schools: Record<string, unknown>[] = [];
+  let fetchError = false;
+  try {
+    const { data } = await supabase
+      .from("schools")
+      .select("*")
+      .order("created_at", { ascending: false });
+    schools = (data as Record<string, unknown>[]) ?? [];
+  } catch (e) {
+    console.error("Failed to load schools:", e);
+    fetchError = true;
+  }
 
   return (
     <div>
@@ -46,11 +55,16 @@ export default async function AdminSchoolsPage() {
         Schools
       </h1>
       <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", marginBottom: 24 }}>
-        {schools?.length ?? 0} total schools
+        {schools.length} total schools
       </p>
+      {fetchError && (
+        <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 8, padding: "12px 16px", marginBottom: 16, color: "#f87171", fontSize: 14 }}>
+          Failed to load data. Check the console for details.
+        </div>
+      )}
       <AdminTable
         columns={columns}
-        data={(schools as Record<string, unknown>[]) ?? []}
+        data={schools}
         entityName="schools"
         apiEndpoint="/api/admin/schools"
         canEdit

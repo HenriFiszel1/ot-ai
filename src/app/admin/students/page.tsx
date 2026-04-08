@@ -3,15 +3,23 @@ import AdminTable, { type Column } from "@/components/admin/AdminTable";
 
 export default async function AdminStudentsPage() {
   const supabase = createAdminClient();
-  const { data: students } = await supabase
-    .from("students")
-    .select("id, email, display_name, grade_level, created_at, schools(name)")
-    .order("created_at", { ascending: false });
 
-  const rows = (students ?? []).map((s: Record<string, unknown>) => ({
-    ...s,
-    school_name: (s.schools as { name: string } | null)?.name ?? "—",
-  }));
+  let rows: Record<string, unknown>[] = [];
+  let fetchError = false;
+  try {
+    const { data: students } = await supabase
+      .from("students")
+      .select("id, email, display_name, grade_level, created_at, schools(name)")
+      .order("created_at", { ascending: false });
+
+    rows = (students ?? []).map((s: Record<string, unknown>) => ({
+      ...s,
+      school_name: (s.schools as { name: string } | null)?.name ?? "—",
+    }));
+  } catch (e) {
+    console.error("Failed to load students:", e);
+    fetchError = true;
+  }
 
   const columns: Column[] = [
     { key: "email", label: "Email" },
@@ -41,9 +49,14 @@ export default async function AdminStudentsPage() {
       <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", marginBottom: 24 }}>
         {rows.length} total students
       </p>
+      {fetchError && (
+        <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 8, padding: "12px 16px", marginBottom: 16, color: "#f87171", fontSize: 14 }}>
+          Failed to load data. Check the console for details.
+        </div>
+      )}
       <AdminTable
         columns={columns}
-        data={rows as Record<string, unknown>[]}
+        data={rows}
         entityName="students"
         apiEndpoint="/api/admin/students"
         canEdit={false}
