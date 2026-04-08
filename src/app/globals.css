@@ -26,9 +26,9 @@
   --card-border:     var(--border);
 
   /* Typography */
-  --font-display:    'Inter', sans-serif;
-  --font-sans:       'Inter', sans-serif;
-  --font-serif:      'IBM Plex Serif', serif;
+  --font-display:    var(--font-geist-sans), sans-serif;
+  --font-sans:       var(--font-geist-sans), sans-serif;
+  --font-mono:       var(--font-geist-mono), monospace;
 
   /* Radius */
   --radius-sm:  6px;
@@ -58,37 +58,41 @@ html {
 body {
   background-color: #141414;
   color: #F2F2FF;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-geist-sans), sans-serif;
   font-size: 16px;
   line-height: 1.6;
   min-height: 100vh;
+  font-feature-settings: 'liga' 1, 'calt' 1;
 }
 
 /* ─── Typography Scale ───────────────────────────────────────────────────── */
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-geist-sans), sans-serif;
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.02em;
   color: #F2F2FF;
 }
 
-h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); }
-h2 { font-size: clamp(1.75rem, 4vw, 3rem); }
+h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); letter-spacing: -0.03em; }
+h2 { font-size: clamp(1.75rem, 4vw, 3rem); letter-spacing: -0.025em; }
 h3 { font-size: clamp(1.25rem, 2.5vw, 1.75rem); }
 h4 { font-size: 1.125rem; font-weight: 600; }
 
 p  { color: var(--muted-blue); line-height: 1.7; }
 
 .display {
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-geist-sans), sans-serif;
   font-weight: 800;
   letter-spacing: -0.03em;
 }
 
-.editorial {
-  font-family: var(--font-serif);
-  font-style: italic;
+/* Gradient heading utility */
+.text-gradient {
+  background: linear-gradient(135deg, #F2F2FF 0%, #B4CDFF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .label {

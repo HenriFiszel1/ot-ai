@@ -64,10 +64,8 @@ const config: Config = {
 
       // ── Typography ───────────────────────────────────────────────────────
       fontFamily: {
-        display: ['Bricolage Grotesque', 'sans-serif'],
-        sans:    ['Instrument Sans', 'sans-serif'],
-        serif:   ['IBM Plex Serif', 'serif'],
-        mono:    ['JetBrains Mono', 'monospace'],
+        sans: ['var(--font-geist-sans)', 'sans-serif'],
+        mono: ['var(--font-geist-mono)', 'monospace'],
       },
 
       fontSize: {
