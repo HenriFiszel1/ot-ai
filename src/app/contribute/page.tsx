@@ -282,8 +282,8 @@ function ContributeContent() {
   }
   function removeComment(i: number) { setInlineComments((prev) => prev.filter((_, idx) => idx !== i)); }
 
-  const ic = "w-full h-11 px-3.5 bg-transparent border rounded-lg text-sm text-[#F2F2FF] placeholder:text-[rgba(255,255,255,0.35)] focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors duration-200" + " border-[rgba(255,255,255,0.12)]";
-  const tc = "w-full p-3.5 bg-transparent border rounded-lg text-sm text-[#F2F2FF] placeholder:text-[rgba(255,255,255,0.35)] focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors duration-200 border-[rgba(255,255,255,0.12)]";
+  const ic = "w-full h-11 px-3.5 bg-transparent border rounded-lg text-sm text-[#F2F2FF] placeholder:text-[rgba(255,255,255,0.5)] focus:outline-none focus:border-[rgba(255,255,255,0.45)] transition-colors duration-200" + " border-[rgba(255,255,255,0.12)]";
+  const tc = "w-full p-3.5 bg-transparent border rounded-lg text-sm text-[#F2F2FF] placeholder:text-[rgba(255,255,255,0.5)] focus:outline-none focus:border-[rgba(255,255,255,0.45)] transition-colors duration-200 border-[rgba(255,255,255,0.12)]";
 
   const steps = [
     { num: 1, label: "School" },
@@ -298,7 +298,7 @@ function ContributeContent() {
           <Link href="/dashboard" className="flex items-center gap-3">
             <Image src="/optimize-ai-logo.png" alt="Optimize AI" width={120} height={30} className="h-6 w-auto" />
           </Link>
-          <Link href="/dashboard" className="text-sm flex items-center gap-1.5 transition-opacity hover:opacity-80" style={{ color: 'rgba(255,255,255,0.45)' }}>
+          <Link href="/dashboard" className="text-sm flex items-center gap-1.5 transition-opacity hover:opacity-80" style={{ color: 'rgba(255,255,255,0.65)' }}>
             <ArrowLeft className="w-3.5 h-3.5" /> Dashboard
           </Link>
         </div>
@@ -313,7 +313,7 @@ function ContributeContent() {
                 onClick={() => { if (s.num < step) { setStep(s.num); setError(null); } }}
                 className="flex items-center gap-2 text-sm font-medium transition-colors"
                 style={{
-                  color: step === s.num ? '#F2F2FF' : step > s.num ? '#6398FF' : 'rgba(255,255,255,0.3)',
+                  color: step === s.num ? '#F2F2FF' : step > s.num ? '#6398FF' : 'rgba(255,255,255,0.45)',
                   cursor: s.num < step ? 'pointer' : 'default',
                 }}
               >
@@ -321,7 +321,7 @@ function ContributeContent() {
                   className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold"
                   style={{
                     background: step === s.num ? '#F2F2FF' : step > s.num ? '#6398FF' : 'rgba(255,255,255,0.08)',
-                    color: step === s.num ? '#141414' : step > s.num ? '#141414' : 'rgba(255,255,255,0.3)',
+                    color: step === s.num ? '#141414' : step > s.num ? '#141414' : 'rgba(255,255,255,0.45)',
                   }}
                 >
                   {step > s.num ? <CheckCircle className="w-3.5 h-3.5" /> : s.num}
@@ -339,10 +339,10 @@ function ContributeContent() {
         {step === 1 && !addingNewSchool && (
           <div className="rounded-2xl p-7 space-y-5 animate-[fadeIn_0.3s_ease-out]" style={{ background: '#1e1e1e', border: '1px solid rgba(255,255,255,0.1)' }}>
             <h2 className="text-lg font-semibold font-display" style={{ color: '#F2F2FF' }}>Find Your School</h2>
-            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>Search for your school. If it&apos;s not in our system yet, you can add it.</p>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>Search for your school. If it&apos;s not in our system yet, you can add it.</p>
 
             <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'rgba(255,255,255,0.3)' }} />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'rgba(255,255,255,0.45)' }} />
               <input
                 value={schoolSearch}
                 onChange={(e) => { setSchoolSearch(e.target.value); setSelectedSchool(null); }}
@@ -367,7 +367,7 @@ function ContributeContent() {
                   >
                     <div>
                       <div className="text-sm font-medium" style={{ color: '#F2F2FF' }}>{s.name}</div>
-                      {s.location && <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{s.location}</div>}
+                      {s.location && <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.6)' }}>{s.location}</div>}
                     </div>
                     {selectedSchool?.id === s.id && <CheckCircle className="w-5 h-5" style={{ color: '#6398FF' }} />}
                   </button>
@@ -377,7 +377,7 @@ function ContributeContent() {
 
             {schoolSearch.trim() && filteredSchools.length === 0 && (
               <div className="rounded-xl p-5 text-center" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>No school found matching &quot;{schoolSearch}&quot;</p>
+                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>No school found matching &quot;{schoolSearch}&quot;</p>
               </div>
             )}
 
@@ -406,7 +406,7 @@ function ContributeContent() {
           <div className="rounded-2xl p-7 space-y-5 animate-[fadeIn_0.3s_ease-out]" style={{ background: '#1e1e1e', border: '1px solid rgba(255,255,255,0.1)' }}>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold font-display" style={{ color: '#F2F2FF' }}>Add a New School</h2>
-              <button onClick={() => { setAddingNewSchool(false); setError(null); }} className="text-sm transition-opacity hover:opacity-80" style={{ color: 'rgba(255,255,255,0.45)' }}>Cancel</button>
+              <button onClick={() => { setAddingNewSchool(false); setError(null); }} className="text-sm transition-opacity hover:opacity-80" style={{ color: 'rgba(255,255,255,0.65)' }}>Cancel</button>
             </div>
             <div>
               <label className="text-sm font-medium block mb-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>School Name *</label>
@@ -441,14 +441,14 @@ function ContributeContent() {
         {/* STEP 2: TEACHER */}
         {step === 2 && !addingNewTeacher && (
           <div className="rounded-2xl p-7 space-y-5 animate-[fadeIn_0.3s_ease-out]" style={{ background: '#1e1e1e', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
               <School className="w-3.5 h-3.5" /> {selectedSchool?.name}
             </div>
             <h2 className="text-lg font-semibold font-display" style={{ color: '#F2F2FF' }}>Select a Teacher</h2>
 
             {teachers.length > 0 ? (
               <>
-                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>Choose the teacher whose essay you want to upload, or add a new one.</p>
+                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>Choose the teacher whose essay you want to upload, or add a new one.</p>
                 <div className="space-y-2">
                   {teachers.map((t) => (
                     <button
@@ -463,7 +463,7 @@ function ContributeContent() {
                     >
                       <div>
                         <div className="text-sm font-medium" style={{ color: '#F2F2FF' }}>{t.name}</div>
-                        <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>{t.department}{t.subjects && t.subjects.length > 0 ? ` · ${t.subjects.join(", ")}` : ""}</div>
+                        <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.6)' }}>{t.department}{t.subjects && t.subjects.length > 0 ? ` · ${t.subjects.join(", ")}` : ""}</div>
                       </div>
                       {selectedTeacher?.id === t.id && <CheckCircle className="w-5 h-5" style={{ color: '#6398FF' }} />}
                     </button>
@@ -471,7 +471,7 @@ function ContributeContent() {
                 </div>
               </>
             ) : (
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>No teachers added yet at {selectedSchool?.name}. Add one below.</p>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>No teachers added yet at {selectedSchool?.name}. Add one below.</p>
             )}
 
             <button
@@ -497,13 +497,13 @@ function ContributeContent() {
         {/* STEP 2b: ADD NEW TEACHER */}
         {step === 2 && addingNewTeacher && (
           <div className="rounded-2xl p-7 space-y-5 animate-[fadeIn_0.3s_ease-out]" style={{ background: '#1e1e1e', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
               <School className="w-3.5 h-3.5" /> {selectedSchool?.name}
             </div>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold font-display" style={{ color: '#F2F2FF' }}>Add a New Teacher</h2>
               {teachers.length > 0 && (
-                <button onClick={() => { setAddingNewTeacher(false); setError(null); }} className="text-sm transition-opacity hover:opacity-80" style={{ color: 'rgba(255,255,255,0.45)' }}>Cancel</button>
+                <button onClick={() => { setAddingNewTeacher(false); setError(null); }} className="text-sm transition-opacity hover:opacity-80" style={{ color: 'rgba(255,255,255,0.65)' }}>Cancel</button>
               )}
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -539,7 +539,7 @@ function ContributeContent() {
         {/* STEP 3: UPLOAD ESSAY */}
         {step === 3 && (
           <div className="rounded-2xl p-7 space-y-5 animate-[fadeIn_0.3s_ease-out]" style={{ background: '#1e1e1e', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
               <School className="w-3.5 h-3.5" /> {selectedSchool?.name} <ChevronRight className="w-3 h-3" /> {selectedTeacher?.name}
             </div>
 
@@ -549,7 +549,7 @@ function ContributeContent() {
                   <CheckCircle className="w-8 h-8" style={{ color: '#34d399' }} />
                 </div>
                 <h2 className="text-xl font-semibold font-display" style={{ color: '#F2F2FF' }}>Essay Uploaded!</h2>
-                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>The AI will use this to learn {selectedTeacher?.name}&apos;s grading style.</p>
+                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>The AI will use this to learn {selectedTeacher?.name}&apos;s grading style.</p>
                 <div className="flex gap-3 justify-center">
                   <button
                     onClick={() => { setEssaySuccess(false); }}
@@ -570,7 +570,7 @@ function ContributeContent() {
             ) : (
               <>
                 <h2 className="text-lg font-semibold font-display" style={{ color: '#F2F2FF' }}>Upload a Graded Essay</h2>
-                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>Upload a past essay with teacher feedback and the grade you received — this trains the AI to predict how {selectedTeacher?.name} grades.</p>
+                <p className="text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>Upload a past essay with teacher feedback and the grade you received — this trains the AI to predict how {selectedTeacher?.name} grades.</p>
 
                 {/* Import mode toggle */}
                 <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
@@ -599,7 +599,7 @@ function ContributeContent() {
                           <FileText className="w-6 h-6" style={{ color: '#6398FF' }} />
                         </div>
                         <h3 className="text-sm font-semibold" style={{ color: '#F2F2FF' }}>Connect Your Google Account</h3>
-                        <p className="text-xs max-w-sm mx-auto" style={{ color: 'rgba(255,255,255,0.4)' }}>Link your Google account to import essays and teacher comments directly from Google Docs.</p>
+                        <p className="text-xs max-w-sm mx-auto" style={{ color: 'rgba(255,255,255,0.6)' }}>Link your Google account to import essays and teacher comments directly from Google Docs.</p>
                         <button onClick={connectGoogle}
                           className="h-11 px-6 rounded-xl text-sm font-medium inline-flex items-center gap-2 transition-colors duration-200"
                           style={{ background: '#F2F2FF', color: '#141414' }}>
@@ -662,7 +662,7 @@ function ContributeContent() {
                                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                                   {inlineComments.filter((c) => c.comment.trim()).map((c, i) => (
                                     <div key={i} className="rounded-lg p-3 text-xs space-y-1" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                                      {c.excerpt && <p className="italic" style={{ color: 'rgba(255,255,255,0.45)' }}>&ldquo;{c.excerpt.slice(0, 80)}{c.excerpt.length > 80 ? "…" : ""}&rdquo;</p>}
+                                      {c.excerpt && <p className="italic" style={{ color: 'rgba(255,255,255,0.65)' }}>&ldquo;{c.excerpt.slice(0, 80)}{c.excerpt.length > 80 ? "…" : ""}&rdquo;</p>}
                                       <p style={{ color: '#F2F2FF' }}>{c.comment}</p>
                                     </div>
                                   ))}
@@ -676,7 +676,7 @@ function ContributeContent() {
                               <textarea value={rubric} onChange={(e) => setRubric(e.target.value)}
                                 placeholder="Paste the rubric or grading criteria for this assignment..."
                                 className={`${tc} min-h-[80px]`} />
-                              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Optional. Helps the AI understand grading criteria.</p>
+                              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Optional. Helps the AI understand grading criteria.</p>
                             </div>
 
                             {/* Submit */}
@@ -739,9 +739,9 @@ function ContributeContent() {
                         {inlineComments.map((c, i) => (
                           <div key={i} className="rounded-xl p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                             <div className="flex items-center justify-between">
-                              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>Comment {i + 1}</span>
+                              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.5)' }}>Comment {i + 1}</span>
                               {inlineComments.length > 1 && (
-                                <button onClick={() => removeComment(i)} className="transition-opacity hover:opacity-80" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                                <button onClick={() => removeComment(i)} className="transition-opacity hover:opacity-80" style={{ color: 'rgba(255,255,255,0.45)' }}>
                                   <X className="w-3.5 h-3.5" />
                                 </button>
                               )}
@@ -764,7 +764,7 @@ function ContributeContent() {
                       <textarea value={rubric} onChange={(e) => setRubric(e.target.value)}
                         placeholder="Paste the rubric or grading criteria for this assignment..."
                         className={`${tc} min-h-[80px]`} />
-                      <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>Optional. Helps the AI understand grading criteria.</p>
+                      <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Optional. Helps the AI understand grading criteria.</p>
                     </div>
 
                     {/* Submit */}

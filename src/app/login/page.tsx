@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { TextShimmer } from "@/components/ui/text-shimmer";
+import { AnimateIn } from "@/components/ui/motion";
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -58,9 +59,10 @@ function LoginForm() {
     }
   }
 
-  const ic = "w-full h-11 px-3.5 bg-transparent border rounded-lg text-sm text-[#F2F2FF] placeholder:text-[rgba(255,255,255,0.35)] focus:outline-none focus:border-[rgba(255,255,255,0.3)] transition-colors duration-200 border-[rgba(255,255,255,0.12)]";
+  const ic = "w-full h-11 px-3.5 bg-transparent border rounded-lg text-sm text-[#F2F2FF] placeholder:text-[rgba(255,255,255,0.5)] focus:outline-none focus:border-[rgba(255,255,255,0.45)] transition-colors duration-200 border-[rgba(255,255,255,0.12)]";
 
   return (
+    <AnimateIn>
     <div className="w-full max-w-sm">
       <Link href="/" className="flex items-center gap-3 mb-10">
         <Image
@@ -75,7 +77,7 @@ function LoginForm() {
       <h1 className="text-2xl font-semibold tracking-[-0.02em]" style={{ color: '#F2F2FF' }}>
         Welcome back
       </h1>
-      <p className="mt-1.5 text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
+      <p className="mt-1.5 text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>
         Sign in to analyze your essays.
       </p>
 
@@ -108,7 +110,7 @@ function LoginForm() {
 
       <div className="mt-5 flex items-center gap-3">
         <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
-        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>or sign in with email</span>
+        <span className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>or sign in with email</span>
         <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
       </div>
 
@@ -132,11 +134,12 @@ function LoginForm() {
         </button>
       </form>
 
-      <p className="mt-6 text-sm text-center" style={{ color: 'rgba(255,255,255,0.45)' }}>
+      <p className="mt-6 text-sm text-center" style={{ color: 'rgba(255,255,255,0.65)' }}>
         Don&apos;t have an account?{" "}
         <Link href="/signup" className="font-medium transition-opacity hover:opacity-80" style={{ color: '#F2F2FF' }}>Sign up</Link>
       </p>
     </div>
+    </AnimateIn>
   );
 }
 

@@ -237,6 +237,20 @@ a {
   background: rgba(49, 111, 240, 0.2);
 }
 
+/* Enhanced card hover lift */
+.hover-card {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease;
+}
+
+.hover-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3),
+              0 0 20px rgba(99, 152, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
 /* ─── Animations ─────────────────────────────────────────────────────────── */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(16px); }

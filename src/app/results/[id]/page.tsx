@@ -14,6 +14,7 @@ import {
   Eye,
   PenLine,
 } from "lucide-react";
+import { AnimateIn } from "@/components/ui/motion";
 
 export default async function ResultsPage({
   params,
@@ -125,7 +126,7 @@ export default async function ResultsPage({
           </Link>
           <Link
             href="/dashboard"
-            className="text-sm text-gray-400 hover:text-gray-300 flex items-center gap-1.5 transition-colors duration-200"
+            className="text-sm text-gray-300 hover:text-gray-300 flex items-center gap-1.5 transition-colors duration-200"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Dashboard
           </Link>
@@ -135,20 +136,20 @@ export default async function ResultsPage({
       <div className="max-w-6xl mx-auto px-6 py-10">
         {/* Grade Header */}
         {grade && (
-          <div className="bg-navy-800 border border-white/[0.06] rounded-2xl p-7 mb-6">
+          <AnimateIn><div className="bg-navy-800 border border-white/[0.06] rounded-2xl p-7 mb-6">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
               <div className="flex items-center gap-6">
                 <div className="text-center">
                   <div className="text-5xl font-extrabold text-white font-display tracking-tight">
                     {grade.letter_grade}
                   </div>
-                  <div className="text-lg text-gray-400 mt-1 font-display">
+                  <div className="text-lg text-gray-300 mt-1 font-display">
                     {grade.numeric_grade}/100
                   </div>
                 </div>
                 <div className="w-px h-16 bg-white/[0.06] hidden lg:block" />
                 <div>
-                  <div className="text-sm text-gray-400">
+                  <div className="text-sm text-gray-300">
                     Predicted grade from{" "}
                     <span className="font-medium text-gray-300">
                       {teacherName}
@@ -163,7 +164,7 @@ export default async function ResultsPage({
                     >
                       {grade.confidence} confidence
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-400">
                       {comments.length} comments
                     </span>
                   </div>
@@ -181,19 +182,19 @@ export default async function ResultsPage({
                 </div>
               </div>
             </div>
-          </div>
+          </div></AnimateIn>
         )}
 
         {/* Main content */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Essay Panel */}
-          <div className="lg:col-span-3">
+          <AnimateIn delay={0.1} className="lg:col-span-3">
             <div className="bg-navy-800 border border-white/[0.06] rounded-2xl">
               <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
                 <h2 className="text-base font-semibold text-white flex items-center gap-2 font-display">
-                  <FileText className="w-4 h-4 text-gray-500" /> Your Essay
+                  <FileText className="w-4 h-4 text-gray-400" /> Your Essay
                 </h2>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-gray-400">
                   {essay.word_count || "—"} words
                 </span>
               </div>
@@ -208,14 +209,14 @@ export default async function ResultsPage({
                 ))}
               </div>
             </div>
-          </div>
+          </AnimateIn>
 
           {/* Sidebar */}
-          <div className="lg:col-span-2 space-y-4">
+          <AnimateIn delay={0.2} className="lg:col-span-2 space-y-4">
             {/* Comments */}
             <div>
               <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-1.5 mb-3 font-display">
-                <MessageSquare className="w-4 h-4 text-gray-500" /> Inline Comments
+                <MessageSquare className="w-4 h-4 text-gray-400" /> Inline Comments
               </h3>
               <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
                 {comments.map((comment) => {
@@ -241,7 +242,7 @@ export default async function ResultsPage({
                           <p className="text-xs text-gray-300 leading-relaxed">
                             {comment.comment_text}
                           </p>
-                          <p className="text-[11px] text-gray-500 mt-1.5 italic font-serif truncate">
+                          <p className="text-[11px] text-gray-400 mt-1.5 italic font-serif truncate">
                             &ldquo;{comment.excerpt?.slice(0, 60)}...&rdquo;
                           </p>
                         </div>
@@ -256,10 +257,10 @@ export default async function ResultsPage({
             {endComment && (
               <div className="bg-navy-800 border border-white/[0.06] rounded-xl p-5">
                 <h3 className="text-sm font-semibold text-gray-300 flex items-center gap-1.5 mb-3 font-display">
-                  <Eye className="w-4 h-4 text-gray-500" /> End Comment
+                  <Eye className="w-4 h-4 text-gray-400" /> End Comment
                 </h3>
                 {endComment.comment_text.split("\n\n").map((p: string, i: number) => (
-                  <p key={i} className="text-xs text-gray-400 leading-relaxed mb-2 font-serif">
+                  <p key={i} className="text-xs text-gray-300 leading-relaxed mb-2 font-serif">
                     {p}
                   </p>
                 ))}
@@ -275,8 +276,8 @@ export default async function ResultsPage({
                   </h3>
                   <div className="space-y-2">
                     {grade.reasoning?.map((r: string, i: number) => (
-                      <div key={i} className="flex items-start gap-2 text-xs text-gray-400">
-                        <span className="w-4 h-4 rounded-full bg-white/[0.04] text-gray-500 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">
+                      <div key={i} className="flex items-start gap-2 text-xs text-gray-300">
+                        <span className="w-4 h-4 rounded-full bg-white/[0.04] text-gray-400 flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5">
                           {i + 1}
                         </span>
                         <span className="leading-relaxed">{r}</span>
@@ -326,7 +327,7 @@ export default async function ResultsPage({
                         className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
                           i === 0
                             ? "bg-brand-500/15 text-brand-400"
-                            : "bg-white/[0.04] text-gray-500"
+                            : "bg-white/[0.04] text-gray-400"
                         }`}
                       >
                         {i + 1}
@@ -353,7 +354,7 @@ export default async function ResultsPage({
                 Back to Dashboard
               </Link>
             </div>
-          </div>
+          </AnimateIn>
         </div>
       </div>
     </div>

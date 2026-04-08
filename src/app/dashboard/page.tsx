@@ -10,6 +10,7 @@ import {
   School,
   Sparkles,
 } from "lucide-react";
+import { AnimateIn, StaggerChildren, StaggerItem } from "@/components/ui/motion";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -63,12 +64,12 @@ export default async function DashboardPage() {
             />
           </Link>
           <div className="flex items-center gap-5">
-            <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>{user.email}</span>
+            <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>{user.email}</span>
             <form action="/api/auth/signout" method="POST">
               <button
                 type="submit"
                 className="text-xs font-medium flex items-center gap-1.5 transition-opacity hover:opacity-80"
-                style={{ color: 'rgba(255,255,255,0.4)' }}
+                style={{ color: 'rgba(255,255,255,0.6)' }}
               >
                 <LogOut className="w-3.5 h-3.5" /> Sign out
               </button>
@@ -79,12 +80,12 @@ export default async function DashboardPage() {
 
       <div className="max-w-4xl mx-auto px-6 py-10">
         {/* Page header */}
-        <div className="flex items-center justify-between mb-10">
+        <AnimateIn className="flex items-center justify-between mb-10">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight" style={{ color: '#F2F2FF' }}>
               Dashboard
             </h1>
-            <p className="mt-1.5 text-sm" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            <p className="mt-1.5 text-sm" style={{ color: 'rgba(255,255,255,0.65)' }}>
               Submit essays and view your feedback history.
             </p>
           </div>
@@ -104,16 +105,16 @@ export default async function DashboardPage() {
               <Sparkles className="w-4 h-4" /> Analyze Essay
             </Link>
           </div>
-        </div>
+        </AnimateIn>
 
         {recentEssays.length === 0 ? (
           /* Empty state */
-          <div className="rounded-2xl p-14 text-center" style={{ background: '#1e1e1e', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <AnimateIn><div className="rounded-2xl p-14 text-center" style={{ background: '#1e1e1e', border: '1px solid rgba(255,255,255,0.1)' }}>
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ background: 'rgba(255,255,255,0.05)' }}>
-              <FileText className="w-8 h-8" style={{ color: 'rgba(255,255,255,0.4)' }} />
+              <FileText className="w-8 h-8" style={{ color: 'rgba(255,255,255,0.6)' }} />
             </div>
             <h2 className="text-xl font-semibold tracking-tight" style={{ color: '#F2F2FF' }}>No essays yet</h2>
-            <p className="mt-2.5 text-sm max-w-sm mx-auto leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            <p className="mt-2.5 text-sm max-w-sm mx-auto leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>
               Submit your first essay to get teacher-specific feedback and a predicted grade.
             </p>
             <Link
@@ -123,13 +124,13 @@ export default async function DashboardPage() {
             >
               Analyze Essay <ArrowRight className="w-4 h-4" />
             </Link>
-          </div>
+          </div></AnimateIn>
         ) : (
           /* Essay list */
-          <div className="space-y-2">
+          <StaggerChildren className="space-y-2" staggerDelay={0.06}>
             {recentEssays.map((essay) => (
+              <StaggerItem key={essay.id}>
               <Link
-                key={essay.id}
                 href={essay.status === "completed" ? `/results/${essay.id}` : "#"}
                 className="group block rounded-xl p-5 transition-all duration-200"
                 style={{ background: '#1e1e1e', border: '1px solid rgba(255,255,255,0.08)' }}
@@ -139,7 +140,7 @@ export default async function DashboardPage() {
                     <p className="text-sm font-semibold truncate" style={{ color: '#F2F2FF' }}>
                       {essay.prompt}
                     </p>
-                    <div className="flex items-center gap-3 mt-1.5 text-xs font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    <div className="flex items-center gap-3 mt-1.5 text-xs font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>
                       {essay.teachers && (
                         <span style={{ color: 'rgba(255,255,255,0.6)' }}>{(essay.teachers as { name: string }).name}</span>
                       )}
@@ -162,15 +163,16 @@ export default async function DashboardPage() {
                           ? { background: 'rgba(245,158,11,0.1)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.2)' }
                           : essay.status === "failed"
                             ? { background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }
-                            : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.08)' }
+                            : { background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.08)' }
                     }
                   >
                     {essay.status}
                   </span>
                 </div>
               </Link>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerChildren>
         )}
       </div>
     </div>
