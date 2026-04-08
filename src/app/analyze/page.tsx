@@ -18,7 +18,9 @@ import {
   Search,
   User,
   X,
+  AlertTriangle,
 } from "lucide-react";
+import type { FactualError } from "@/lib/types";
 import { TextShimmer } from "@/components/ui/text-shimmer";
 
 export default function AnalyzePage() {
@@ -47,6 +49,11 @@ export default function AnalyzePage() {
   // ─── New UI state for collapsible fields ──────────────
   const [promptExpanded, setPromptExpanded] = useState(true);
   const [metaExpanded, setMetaExpanded] = useState(false);
+
+  // ─── Fact-check result state ──────────────────────────
+  const [factualErrors, setFactualErrors] = useState<FactualError[] | null>(null);
+  const [factCheckExpanded, setFactCheckExpanded] = useState(true);
+  const [pendingEssayId, setPendingEssayId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadSchools() {
@@ -100,7 +107,13 @@ export default function AnalyzePage() {
       }
 
       const data = await res.json();
-      router.push(`/results/${data.essay_id}`);
+      if (data.factualErrors && data.factualErrors.length > 0) {
+        setFactualErrors(data.factualErrors);
+        setPendingEssayId(data.essay_id);
+        setSubmitting(false);
+      } else {
+        router.push(`/results/${data.essay_id}`);
+      }
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Something went wrong");
       setSubmitting(false);
@@ -140,6 +153,99 @@ export default function AnalyzePage() {
               Building feedback using {selectedTeacher?.name}&apos;s grading model. This takes ~30
               seconds.
             </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Fact-check results screen ───────────────────────
+  if (factualErrors && factualErrors.length > 0 && pendingEssayId) {
+    return (
+      <div className="min-h-screen" style={{ background: "#141414" }}>
+        <header style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
+            <Link href="/dashboard" className="flex items-center gap-3">
+              <Image src="/optimize-ai-logo.png" alt="Optimize AI" width={120} height={30} className="h-6 w-auto" />
+            </Link>
+          </div>
+        </header>
+
+        <div className="max-w-2xl mx-auto px-6 py-12 space-y-6">
+          <div>
+            <h1 className="text-2xl font-semibold mb-1" style={{ color: "#F2F2FF" }}>
+              Analysis complete
+            </h1>
+            <p className="text-sm" style={{ color: "rgba(255,255,255,0.45)" }}>
+              Your essay has been graded. We also found potential factual issues below.
+            </p>
+          </div>
+
+          {/* Fact Check collapsible section */}
+          <div
+            className="rounded-xl overflow-hidden"
+            style={{ border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.04)" }}
+          >
+            <button
+              onClick={() => setFactCheckExpanded(!factCheckExpanded)}
+              className="w-full px-5 py-4 flex items-center justify-between transition-colors"
+              style={{ background: "transparent" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(239,68,68,0.04)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <span className="flex items-center gap-2.5">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" style={{ color: "#f87171" }} />
+                <span className="text-sm font-semibold" style={{ color: "#fca5a5" }}>
+                  Fact Check — {factualErrors.length} potential {factualErrors.length === 1 ? "error" : "errors"} found
+                </span>
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform duration-200 ${factCheckExpanded ? "rotate-180" : ""}`}
+                style={{ color: "rgba(239,68,68,0.5)" }}
+              />
+            </button>
+
+            {factCheckExpanded && (
+              <div className="px-5 pb-5 space-y-4" style={{ borderTop: "1px solid rgba(239,68,68,0.15)" }}>
+                <p className="text-xs pt-4" style={{ color: "rgba(255,255,255,0.4)" }}>
+                  These may affect your grade. Review before submitting your essay.
+                </p>
+                {factualErrors.map((err, i) => (
+                  <div
+                    key={i}
+                    className="p-4 rounded-lg space-y-2"
+                    style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)" }}
+                  >
+                    <p className="text-sm italic" style={{ color: "rgba(255,255,255,0.55)" }}>
+                      &ldquo;{err.quoted_text}&rdquo;
+                    </p>
+                    <p className="text-xs" style={{ color: "#f87171" }}>
+                      <span className="font-semibold">Issue: </span>{err.issue}
+                    </p>
+                    <p className="text-xs" style={{ color: "rgba(74,222,128,0.85)" }}>
+                      <span className="font-semibold">Correction: </span>{err.correction}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => { setFactualErrors(null); setPendingEssayId(null); }}
+              className="h-10 px-5 rounded-lg text-sm font-medium transition-all duration-200"
+              style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.1)" }}
+            >
+              Back to essay
+            </button>
+            <button
+              onClick={() => router.push(`/results/${pendingEssayId}`)}
+              className="h-10 px-5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all duration-200"
+              style={{ background: "#F2F2FF", color: "#141414" }}
+            >
+              View full results <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </div>

@@ -22,21 +22,26 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { prediction_id, actual_grade } = body as {
+    const { prediction_id, actual_grade, actual_numeric_grade } = body as {
       prediction_id?: string;
-      actual_grade?: number;
+      actual_grade?: string;       // letter grade e.g. "B+"
+      actual_numeric_grade?: number; // numeric grade e.g. 85
     };
 
-    if (!prediction_id || actual_grade == null || isNaN(actual_grade)) {
+    // Support both legacy (actual_grade as number) and new (actual_numeric_grade) callers
+    const numericGrade =
+      actual_numeric_grade != null ? actual_numeric_grade : Number(actual_grade);
+
+    if (!prediction_id || numericGrade == null || isNaN(numericGrade)) {
       return NextResponse.json(
-        { error: "prediction_id and actual_grade are required" },
+        { error: "prediction_id and actual_numeric_grade are required" },
         { status: 400 }
       );
     }
 
-    if (actual_grade < 0 || actual_grade > 100) {
+    if (numericGrade < 0 || numericGrade > 100) {
       return NextResponse.json(
-        { error: "actual_grade must be between 0 and 100" },
+        { error: "actual_numeric_grade must be between 0 and 100" },
         { status: 400 }
       );
     }
@@ -62,15 +67,16 @@ export async function POST(request: Request) {
       prediction_id,
       teacher_id: prediction.teacher_id,
       predicted_grade: prediction.numeric_grade,
-      actual_grade,
+      actual_grade: numericGrade,
       reported_by: user.id,
     });
 
-    // Adjust harshness_index only when error > 5 points
-    const diff = prediction.numeric_grade - actual_grade; // + = predicted too high
-    const delta = diff > 5 ? 0.05 : diff < -5 ? -0.05 : 0;
+    // Adjust harshness_index: +1 direction = overpredicted, -1 = underpredicted
+    // Formula: new_harshness = old_harshness + (0.05 * direction)
+    const predictedNumeric = prediction.numeric_grade;
+    const direction = predictedNumeric > numericGrade ? 1 : predictedNumeric < numericGrade ? -1 : 0;
 
-    if (delta !== 0) {
+    if (direction !== 0) {
       const { data: profile } = await serviceSupabase
         .from("teacher_profiles")
         .select("harshness_index")
@@ -81,7 +87,7 @@ export async function POST(request: Request) {
         ? profile.harshness_index
         : 0;
 
-      const next = Math.max(-0.5, Math.min(0.5, current + delta));
+      const next = Math.max(-0.5, Math.min(0.5, current + 0.05 * direction));
 
       await serviceSupabase
         .from("teacher_profiles")

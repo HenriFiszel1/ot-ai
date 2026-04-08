@@ -146,6 +146,16 @@ export interface AnalysisResult {
   inline_comments: InlineComment[];
   end_comment: string;
   next_steps: string[];
+  gap_analysis?: {
+    whatWouldImproveGrade: string[];
+    keyDifferences: string[];
+  };
+}
+
+export interface FactualError {
+  quoted_text: string;
+  issue: string;
+  correction: string;
 }
 
 export interface AnalyzeResponse {
@@ -153,4 +163,5 @@ export interface AnalyzeResponse {
   result: AnalysisResult;
   teacher_name: string;
   school_name: string;
+  factualErrors?: FactualError[];
 }

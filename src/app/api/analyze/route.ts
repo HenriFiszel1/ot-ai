@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { AnalyzeRequest } from "@/lib/types";
 import { findSimilarTrainingEssays } from "@/lib/embeddings";
-import { runGradingPipeline } from "@/lib/grading-pipeline";
+import { runGradingPipeline, factCheck } from "@/lib/grading-pipeline";
 
 export async function POST(request: Request) {
   try {
@@ -122,20 +122,23 @@ export async function POST(request: Request) {
       );
     }
 
-    // ─── Run grading pipeline ────────────────────────
-    const result = await runGradingPipeline({
-      essayText: essay_text,
-      prompt,
-      rubric: rubric || null,
-      className: class_name || null,
-      teacherName: teacher.name,
-      schoolName: school.name,
-      department: teacher.department || "English",
-      subjects: teacher.subjects || [],
-      gradingStyle: teacher.grading_style || null,
-      profile,
-      trainingEssays,
-    });
+    // ─── Run grading pipeline + fact check in parallel ──
+    const [result, { factualErrors }] = await Promise.all([
+      runGradingPipeline({
+        essayText: essay_text,
+        prompt,
+        rubric: rubric || null,
+        className: class_name || null,
+        teacherName: teacher.name,
+        schoolName: school.name,
+        department: teacher.department || "English",
+        subjects: teacher.subjects || [],
+        gradingStyle: teacher.grading_style || null,
+        profile,
+        trainingEssays,
+      }),
+      factCheck(essay_text, prompt),
+    ]);
 
     // ─── Store results in Supabase ───────────────────
     const gp = result.grade_prediction;
@@ -184,6 +187,7 @@ export async function POST(request: Request) {
       result,
       teacher_name: teacher.name,
       school_name: school.name,
+      factualErrors,
     });
   } catch (err) {
     console.error("Analysis error:", err);
